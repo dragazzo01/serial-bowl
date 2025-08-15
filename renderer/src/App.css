@@ -1,73 +1,25 @@
-#root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.react:hover {
-  filter: drop-shadow(0 0 2em #61dafbaa);
-}
-
-@keyframes logo-spin {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  a:nth-of-type(2) .logo {
-    animation: logo-spin infinite 20s linear;
-  }
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-
 .app {
-  max-width: 1200px;
-  margin: 0 auto;
   padding: 20px;
+  max-width: 800px;
+  margin: 0 auto;
 }
 
-.stories-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+.stories-list {
+  margin-top: 20px;
 }
 
-.story-card {
-  border: 1px solid #ddd;
-  padding: 15px;
-  border-radius: 8px;
-  background-color: #f9f9f9;
+.story-item {
+  margin-bottom: 15px;
+  padding: 10px;
+  border: 1px solid #eee;
+  border-radius: 4px;
 }
 
-.cover-image {
-  max-width: 100%;
-  height: auto;
-  margin-bottom: 10px;
+.story-item h2 {
+  margin: 0 0 5px 0;
 }
 
-.chapters {
-  margin-top: 15px;
-  padding-top: 10px;
-  border-top: 1px solid #eee;
+.story-item p {
+  margin: 0;
+  color: #666;
 }

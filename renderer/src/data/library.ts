@@ -1,8 +1,3 @@
-// src/main/data/library.ts
-// import { readFileSync, writeFileSync } from 'fs';
-// import { app } from 'electron';
-// import path from 'path';
-
 function getDate(): string {
     return new Date().toLocaleDateString('en-US');
 }
@@ -186,6 +181,7 @@ export class Library {
 
     async saveLibrary(): Promise<void> {
         await window.electronAPI.saveLibrary(this.stories.map(s => s.serialize()));
+        console.log(`Saved Successfully`);
     }
 
     getStory(title: string): Story | undefined {
@@ -231,13 +227,13 @@ export class Library {
 
 // Extend window type for electronAPI
 declare global {
-  interface Window {
-    electronAPI: {
-      loadLibrary: () => Promise<StoryData[]>;
-      saveLibrary: (data: StoryData[]) => Promise<{ success: boolean }>;
-    };
-  }
+    interface Window {
+        electronAPI: {
+            loadLibrary: () => Promise<StoryData[]>;
+            saveLibrary: (data: StoryData[]) => Promise<{ success: boolean }>;
+            tracker: {
+                checkStoryUpdate: (story: StoryData) => Promise<ChapterData[]>;
+            }
+        };
+    }
 }
-
-// Default save file path
-// export const defaultSavePath = path.join(app.getPath('userData'), 'library.json');

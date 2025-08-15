@@ -1,71 +1,100 @@
 // src/App.tsx
-import React, { useEffect, useState } from 'react';
-import { Library, Story } from './data/library';
+import React, { useState, useEffect, useRef } from 'react';
+import { Library, Chapter } from './data/library';
 
 const App: React.FC = () => {
   const [library, setLibrary] = useState<Library | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const isRunning = useRef(false); // Track if operation is in progress
 
-  useEffect(() => {
-    const loadLibrary = async () => {
-      try {
-        const loadedLibrary = await Library.create();
-        setLibrary(loadedLibrary);
-      } catch (err) {
-        setError('Failed to load library');
-        console.error(err);
-      } finally {
-        setLoading(false);
+  const loadAndUpdateLibrary = async () => {
+    if (isRunning.current) return; // Prevent concurrent executions
+    isRunning.current = true;
+    setLoading(true);
+    setError(null);
+
+    try {
+      const loadedLibrary = await Library.create();
+
+      for (const story of loadedLibrary.stories) {
+        try {
+          const result = await window.electronAPI.tracker.checkStoryUpdate(story.serialize());
+          console.log(`Found ${result.length} chapters`);
+          if (result.length) {
+            story.newChapters(result.map(c => new Chapter(c)));
+          }
+        } catch (err) {
+          console.error(`Failed to check updates for ${story.title}:`, err);
+        }
       }
-    };
 
-    loadLibrary();
+      //await loadedLibrary.saveLibrary()
+      setLibrary(loadedLibrary);
+      setLoading(false);
+    } catch (err) {
+      setError('Failed to load library');
+      console.error(err);
+    } finally {
+      isRunning.current = false;
+    }
+  };
+
+  // Initial load
+  useEffect(() => {
+    loadAndUpdateLibrary();
   }, []);
 
+  const handleRefresh = () => {
+    if (!loading) { // Additional safeguard
+      loadAndUpdateLibrary();
+    }
+  };
+
   if (loading) {
-    return <div>Loading library...</div>;
+    return <div>Loading and checking for updates...</div>;
   }
 
   if (error) {
-    return <div>Error: {error}</div>;
+    return (
+      <div>
+        Error: {error}
+        <button onClick={handleRefresh}>Try Again</button>
+      </div>
+    );
   }
 
   if (!library || library.stories.length === 0) {
-    return <div>No stories found in the library</div>;
+    return (
+      <div>
+        No stories found in the library
+        <button onClick={handleRefresh}>Refresh</button>
+      </div>
+    );
   }
-
-  // Get first three stories
-  const firstThreeStories = library.stories.slice(0, 3);
 
   return (
     <div className="app">
       <h1>My Reading Library</h1>
-      <div className="stories-container">
-        {firstThreeStories.map((story) => (
-          <div key={story.title} className="story-card">
+      <button
+        onClick={handleRefresh}
+        disabled={loading}
+        style={{ cursor: loading ? 'not-allowed' : 'pointer' }}
+      >
+        {loading ? 'Refreshing...' : 'Refresh Library'}
+      </button>
+      <div className="stories-list">
+        {library.stories.map((story) => (
+          <div key={story.title} className="story-item">
             <h2>{story.title}</h2>
-            {story.cover && (
-              <img 
-                src={story.cover} 
-                alt={`Cover for ${story.title}`} 
-                className="cover-image"
-              />
+            {story.chapters.length > 0 ? (
+              <div>
+                <p>Last: {story.getLastKnownChapter().title}</p>
+                <p>Total chapters: {story.chapters.length}</p>
+              </div>
+            ) : (
+              <p>No chapters available</p>
             )}
-            <p>{story.summary}</p>
-            
-            <div className="chapters">
-              <h3>First Chapter:</h3>
-              {story.chapters.length > 0 ? (
-                <div className="chapter">
-                  <p>Title: {story.chapters[0].title}</p>
-                  <p>Published: {story.chapters[0].date_published}</p>
-                  <p>Status: {story.chapters[0].read ? 'Read' : 'Unread'}</p>
-                </div>
-              ) : (
-                <p>No chapters available</p>
-              )}
-            </div>
           </div>
         ))}
       </div>

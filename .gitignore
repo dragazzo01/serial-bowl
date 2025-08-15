@@ -64,10 +64,16 @@ Desktop.ini
 
 # Vite build output
 renderer/dist/
-main/*.js
-main/*.js.map
+main/**/*.js
+main/**/*.js.map
+main/main/
+renderer/src/**/*.js
 main/library.json
+library.json
+output.txt
+output.html
 
 # Optional: exclude local development files
 .sass-cache/
 *.css.map
+main/test.ts

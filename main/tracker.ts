@@ -5,6 +5,8 @@ import { JSDOM } from 'jsdom';
 export async function checkStoryUpdate(story: Story): Promise<Chapter[]> {
     if (story.title.includes("Frieren")) {
         return frierenCheck(story);
+    } else if (story.title.includes("Test")) {
+        return [];
     } else if (story.homepage_url.includes("demonicscans.org")) {
         return demonicScansCheck(story);
     //} else if (story.homepage_url.includes("ranobes.net")) {
@@ -36,7 +38,6 @@ async function baseRequest(url: string): Promise<string> {
 }
 
 function latestTitle(story: Story): string {
-    console.log("")
     return story.getLastKnownChapter().title;
 }
 
@@ -89,7 +90,6 @@ async function demonicScansCheck(story: Story): Promise<Chapter[]> {
 
 
 async function frierenCheck(story: Story): Promise<Chapter[]> {
-    console.log(`Trying Frieren with url: ${story.homepage_url}:`)
     const response = await baseRequest(story.homepage_url);
     const dom = new JSDOM(response);
     const doc = dom.window.document;
@@ -99,7 +99,6 @@ async function frierenCheck(story: Story): Promise<Chapter[]> {
     const newChapters: Chapter[] = [];
 
     if (story.chapters.length === divs.length) {
-        console.log(`Same Length`)
         return [];
     }
 
@@ -117,7 +116,6 @@ async function frierenCheck(story: Story): Promise<Chapter[]> {
             .filter(line => line.length > 0) || [];
             
         let chapterTitle = `Chapter ${lines[0].split("Chapter ")[1]}`;
-        console.log(`New Chapter baby: ${chapterTitle}:`)
         if (lines.length > 1) {
             chapterTitle += `: ${lines[1]}`;
         }
@@ -126,7 +124,6 @@ async function frierenCheck(story: Story): Promise<Chapter[]> {
         
         newChapters.push(Chapter.new(chapterTitle, url));
     }
-    console.log(`Went through array`)
     return newChapters.reverse();
 }
 
