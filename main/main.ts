@@ -1,4 +1,6 @@
 import { app, BrowserWindow, ipcMain } from 'electron';
+import { checkStoryUpdate } from './tracker';
+import { Story } from './library-shared';
 import * as path from 'path';
 import fs from 'fs/promises';
 
@@ -35,7 +37,7 @@ app.on('window-all-closed', () => {
 
 const LIBRARY_PATH = path.join(__dirname, 'library.json');
 // Handle loading the library
-ipcMain.handle('load-library', async () => {
+ipcMain.handle('loadLibrary', async () => {
   try {
     const data = await fs.readFile(LIBRARY_PATH, 'utf-8');
     return JSON.parse(data);
@@ -46,12 +48,25 @@ ipcMain.handle('load-library', async () => {
 });
 
 // Handle saving the library
-ipcMain.handle('save-library', async (_, data) => {
+ipcMain.handle('saveLibrary', async (_, data) => {
   try {
     await fs.writeFile(LIBRARY_PATH, JSON.stringify(data, null, 2), 'utf-8');
     return { success: true };
   } catch (error) {
     console.error('Error saving library:', error);
     return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+// Add this IPC handler in main.ts (place it with the other handlers)
+ipcMain.handle('tracker:check-update', async (_, storydata) => {
+  try {
+    const story = new Story(storydata)
+    const newChapters = await checkStoryUpdate(story);
+    const chapterdata = newChapters.map(chapter => chapter.serialize())
+    return chapterdata;
+  } catch (error) {
+    console.error('Error checking for updates:', error);
+    return error instanceof Error ? error.message : String(error);
   }
 });

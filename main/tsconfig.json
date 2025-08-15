@@ -1,4 +1,5 @@
 {
+    "extends": "../tsconfig.json",
   "compilerOptions": {
     "target": "ESNext",
     "module": "commonjs",
@@ -9,8 +10,15 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "moduleResolution": "node",
-    "sourceMap": true
+    "sourceMap": true,
+    "baseUrl": ".",
+    "paths": {
+      "@library": [
+        "./library.ts"
+      ]
+    }
+
   },
-  "include": ["**/*.ts"],
+  "include": ["./**/*.ts"],
   "exclude": ["node_modules"]
 }

@@ -1,9 +1,11 @@
 // main/preload.ts
 import { contextBridge, ipcRenderer } from 'electron';
+import { Story } from './library-shared';
 
 contextBridge.exposeInMainWorld('electronAPI', {
-  loadLibrary: () => ipcRenderer.invoke('load-library'),
-  saveLibrary: (data: unknown) => ipcRenderer.invoke('save-library', data)
+  loadLibrary: () => ipcRenderer.invoke('loadLibrary'),
+  saveLibrary: (data: unknown) => ipcRenderer.invoke('saveLibrary', data),
+  tracker: {
+    checkStoryUpdate: (story: unknown) => ipcRenderer.invoke('tracker:check-update', story)
+  }
 });
-
-//export type ElectronAPI = typeof window.electronAPI;
