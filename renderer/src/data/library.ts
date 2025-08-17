@@ -3,26 +3,26 @@ function getDate(): string {
 }
 
 interface ChapterData {
-    is_read: boolean;
+    isRead: boolean;
     title: string;
     url: string | null;
-    date_published: string;
-    date_read: string | null;
+    datePublished: string;
+    dateRead: string | null;
 }
 
 export class Chapter {
     read: boolean;
     title: string;
     url: string | null;
-    date_published: string;
-    date_read: string | null;
+    datePublished: string;
+    dateRead: string | null;
 
     constructor(chapter_dict: ChapterData) {
-        this.read = chapter_dict.is_read;
+        this.read = chapter_dict.isRead;
         this.title = chapter_dict.title;
         this.url = chapter_dict.url;
-        this.date_published = chapter_dict.date_published;
-        this.date_read = chapter_dict.date_read;
+        this.datePublished = chapter_dict.datePublished;
+        this.dateRead = chapter_dict.dateRead;
     }
 
     static empty(): Chapter {
@@ -32,51 +32,52 @@ export class Chapter {
     static new(title: string, url: string | null, date?: string): Chapter {
         return new Chapter({
             title: title,
-            is_read: false,
+            isRead: false,
             url: url,
-            date_published: date || getDate(),
-            date_read: null,
+            datePublished: date || getDate(),
+            dateRead: null,
         });
     }
 
-    toggleChap(): void {
+    toggle(): void {
         if (this.read) {
             this.read = false;
-            this.date_read = null;
+            this.dateRead = null;
         } else {
             this.read = true;
-            this.date_read = getDate();
+            this.dateRead = getDate();
         }
     }
 
     openLink(): void {
+        // Add this import at the top of your file
         if (this.url) {
             if (!this.read) {
                 this.read = true;
-                this.date_read = getDate();
+                this.dateRead = getDate();
             }
-            require('electron').shell.openExternal(this.url);
+            window.electronAPI.openExternal(this.url);
         }
     }
 
     serialize(): ChapterData {
         return {
             title: this.title,
-            is_read: this.read,
+            isRead: this.read,
             url: this.url,
-            date_published: this.date_published,
-            date_read: this.date_read,
+            datePublished: this.datePublished,
+            dateRead: this.dateRead,
         };
     }
 }
 
 interface StoryData {
     title: string;
-    cover_image: string;
+    coverImage: string;
     summary: string;
-    homepage_url: string;
-    check_for_updates: boolean;
-    additional_info?: any;
+    homepageURL: string;
+    checkForUpdates: boolean;
+    additionalInfo?: any;
     chapters: ChapterData[];
 }
 
@@ -84,28 +85,28 @@ export class Story {
     title: string;
     cover: string;
     summary: string;
-    homepage_url: string;
-    check_for_updates: boolean;
-    additional_info?: any;
+    homepageURL: string;
+    checkForUpdates: boolean;
+    additionalInfo?: any;
     chapters: Chapter[];
 
     constructor(story_dict: StoryData) {
         this.title = story_dict.title;
-        this.cover = story_dict.cover_image;
+        this.cover = story_dict.coverImage;
         this.summary = story_dict.summary;
-        this.homepage_url = story_dict.homepage_url;
-        this.check_for_updates = story_dict.check_for_updates;
-        this.additional_info = story_dict.additional_info;
+        this.homepageURL = story_dict.homepageURL;
+        this.checkForUpdates = story_dict.checkForUpdates;
+        this.additionalInfo = story_dict.additionalInfo;
         this.chapters = story_dict.chapters.map(chap => new Chapter(chap));
     }
 
     editStory(edited_dict: Partial<StoryData>): void {
         if (edited_dict.title) this.title = edited_dict.title;
-        if (edited_dict.cover_image) this.cover = edited_dict.cover_image;
+        if (edited_dict.coverImage) this.cover = edited_dict.coverImage;
         if (edited_dict.summary) this.summary = edited_dict.summary;
-        if (edited_dict.homepage_url) this.homepage_url = edited_dict.homepage_url;
-        if (edited_dict.check_for_updates !== undefined) 
-            this.check_for_updates = edited_dict.check_for_updates;
+        if (edited_dict.homepageURL) this.homepageURL = edited_dict.homepageURL;
+        if (edited_dict.checkForUpdates !== undefined) 
+            this.checkForUpdates = edited_dict.checkForUpdates;
     }
 
     finished(): boolean {
@@ -139,15 +140,15 @@ export class Story {
     serialize(): StoryData {
         const result: StoryData = {
             title: this.title,
-            cover_image: this.cover,
-            homepage_url: this.homepage_url,
+            coverImage: this.cover,
+            homepageURL: this.homepageURL,
             summary: this.summary,
-            check_for_updates: this.check_for_updates,
+            checkForUpdates: this.checkForUpdates,
             chapters: this.chapters.map(c => c.serialize())
         };
         
-        if (this.additional_info !== undefined) {
-            result.additional_info = this.additional_info;
+        if (this.additionalInfo !== undefined) {
+            result.additionalInfo = this.additionalInfo;
         }
         
         return result;
@@ -173,7 +174,6 @@ export class Library {
                 throw error;
             }
         }
-
         const library = new Library();
         library.stories = jsonList.map(story => new Story(story));
         return library;
@@ -207,7 +207,7 @@ export class Library {
             if (story.finished()) {
                 // Finished stories at back
                 gridOrder.push(story);
-            } else if (story.check_for_updates) {
+            } else if (story.checkForUpdates) {
                 // Stories checking for updates at front
                 gridOrder.unshift(story);
                 yellowInsert++;
@@ -231,9 +231,8 @@ declare global {
         electronAPI: {
             loadLibrary: () => Promise<StoryData[]>;
             saveLibrary: (data: StoryData[]) => Promise<{ success: boolean }>;
-            tracker: {
-                checkStoryUpdate: (story: StoryData) => Promise<ChapterData[]>;
-            }
+            checkStoryUpdate: (story: StoryData) => Promise<ChapterData[]>;
+            openExternal: (url: string) => void;
         };
     }
 }

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, ipcMain } from 'electron';
+import { app, BrowserWindow, ipcMain, shell } from 'electron';
 import { checkStoryUpdate } from './tracker';
 import { Story } from './library-shared';
 import * as path from 'path';
@@ -58,8 +58,7 @@ ipcMain.handle('saveLibrary', async (_, data) => {
   }
 });
 
-// Add this IPC handler in main.ts (place it with the other handlers)
-ipcMain.handle('tracker:check-update', async (_, storydata) => {
+ipcMain.handle('checkUpdate', async (_, storydata) => {
   try {
     const story = new Story(storydata)
     const newChapters = await checkStoryUpdate(story);
@@ -69,4 +68,9 @@ ipcMain.handle('tracker:check-update', async (_, storydata) => {
     console.error('Error checking for updates:', error);
     return error instanceof Error ? error.message : String(error);
   }
+});
+
+// Add this IPC handler in main.ts (place it with the other handlers)
+ipcMain.handle('openExternal', async (_, url) => {
+  shell.openExternal(url);
 });

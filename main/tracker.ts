@@ -3,17 +3,18 @@ import { Story, Chapter } from './library-shared'; // Or import from renderer if
 import { JSDOM } from 'jsdom';
 
 export async function checkStoryUpdate(story: Story): Promise<Chapter[]> {
+    return [];
     if (story.title.includes("Frieren")) {
         return frierenCheck(story);
     } else if (story.title.includes("Test")) {
         return [];
-    } else if (story.homepage_url.includes("demonicscans.org")) {
+    } else if (story.homepageURL.includes("demonicscans.org")) {
         return demonicScansCheck(story);
-    //} else if (story.homepage_url.includes("ranobes.net")) {
+    //} else if (story.homepageURL.includes("ranobes.net")) {
     //     return ranobesCheck(story);
-    } else if (story.homepage_url.includes("royalroad.com")) {
+    } else if (story.homepageURL.includes("royalroad.com")) {
         return royalRoadChecker(story);
-    } else if (story.homepage_url.includes("genesistudio.com")) {
+    } else if (story.homepageURL.includes("genesistudio.com")) {
         return genesisChecker(story);
     } else {
         throw new Error("No checker assigned to this story");
@@ -42,7 +43,7 @@ function latestTitle(story: Story): string {
 }
 
 async function demonicScansCheck(story: Story): Promise<Chapter[]> {
-    const response = await baseRequest(story.homepage_url);
+    const response = await baseRequest(story.homepageURL);
     const dom = new JSDOM(response);
     const doc = dom.window.document;
     const chaptersDiv = doc.querySelector('div#chapters-list');
@@ -90,7 +91,7 @@ async function demonicScansCheck(story: Story): Promise<Chapter[]> {
 
 
 async function frierenCheck(story: Story): Promise<Chapter[]> {
-    const response = await baseRequest(story.homepage_url);
+    const response = await baseRequest(story.homepageURL);
     const dom = new JSDOM(response);
     const doc = dom.window.document;
     const divs = doc.querySelectorAll('div.h-full.main-chapter');
@@ -128,7 +129,7 @@ async function frierenCheck(story: Story): Promise<Chapter[]> {
 }
 
 async function royalRoadChecker(story: Story): Promise<Chapter[]> {
-    const response = await baseRequest(story.homepage_url);
+    const response = await baseRequest(story.homepageURL);
     
     // Look for the window.chapters assignment
     const chaptersMatch = response.match(/window\.chapters\s*=\s*(\[.*?\])(?=;|$)/s);
@@ -169,7 +170,7 @@ async function royalRoadChecker(story: Story): Promise<Chapter[]> {
 }
 
 async function genesisChecker(story: Story): Promise<Chapter[]> {
-    const response = await baseRequest(story.homepage_url);
+    const response = await baseRequest(story.homepageURL);
     
     // Extract the free chapters array using regex
     const match = response.match(/free:(\[.*?\])/s);

@@ -1,0 +1,139 @@
+/* renderer/src/components/DetailStoryPanel.css */
+.detail-story-panel {
+    padding: 15px;
+    font-family: Arial, sans-serif;
+}
+
+.cover-row {
+    display: flex;
+    margin-bottom: 20px;
+    align-items: flex-start;
+}
+
+.cover-image {
+    width: 150px;
+    height: 200px;
+    object-fit: cover;
+    margin-right: 15px;
+    border: 1px solid #ddd;
+}
+
+.cover-placeholder {
+    width: 150px;
+    height: 200px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #ddd;
+    margin-right: 15px;
+    color: #666;
+}
+
+.button-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.action-button {
+    padding: 5px 10px;
+    width: 100px;
+    cursor: pointer;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    text-align: center;
+}
+
+.action-button:hover {
+    background-color: #e0e0e0;
+}
+
+.story-details {
+    margin-bottom: 20px;
+}
+
+.story-title {
+    margin: 0 0 10px 0;
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.not-updating {
+    font-weight: normal;
+    color: #666;
+}
+
+.story-summary {
+    margin: 0;
+    max-width: 500px;
+    line-height: 1.4;
+}
+
+.chapters-section {
+    margin-top: 20px;
+}
+
+.chapters-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 15px;
+}
+
+.chapters-header h3 {
+    margin: 0;
+    font-size: 1em;
+    font-weight: bold;
+}
+
+.chapters-action-button {
+    padding: 5px 10px;
+    cursor: pointer;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.chapters-action-button:hover {
+    background-color: #e0e0e0;
+}
+
+.chapters-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.chapter-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.chapter-toggle {
+    width: 24px;
+    height: 24px;
+    cursor: pointer;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.chapter-title {
+    cursor: default;
+}
+
+.chapter-title.has-link {
+    color: blue;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.chapter-date {
+    color: #666;
+    font-size: 0.9em;
+}
