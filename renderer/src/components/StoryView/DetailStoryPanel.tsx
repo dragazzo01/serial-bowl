@@ -1,35 +1,39 @@
 // renderer/src/components/DetailStoryPanel.tsx
 import React, { useState } from 'react';
-import { Story, Chapter } from '../data/library';
-import { useLibrary } from '../data/libraryContext';
+import { Story, Chapter } from '../../data/library';
+import { useLibrary } from '../../data/libraryContext';
 import './DetailStoryPanel.css';
 
 interface DetailStoryPanelProps {
     story: Story;
     onEdit: () => void;
+    refreshGrid: () => void;
 }
 
 const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
     story,
     onEdit,
+    refreshGrid,
 }) => {
     const [showChaptersState, setShowChaptersState] = useState(false);
     const [updateTrigger, setUpdateTrigger] = useState(false); // Add this line
     const { library, loadLibrary, updateLibrary } = useLibrary();
 
+    const saveChapterUpdate = () => {
+        setUpdateTrigger(!updateTrigger);
+        refreshGrid();
+        updateLibrary();
+    }
+
 
     const toggleChapter = (chapter: Chapter) => {
         chapter.toggle()
-        setUpdateTrigger(!updateTrigger);
-        updateLibrary();
-        console.log(`toggleChapter pressed for ${chapter.title}`);
+        saveChapterUpdate();
     };
 
     const openLink = (chapter: Chapter) => {
         chapter.openLink()
-        setUpdateTrigger(!updateTrigger);
-        updateLibrary();
-        console.log(`openLink pressed`);
+        saveChapterUpdate();;
     };
 
     const addChapter = () => {
@@ -46,9 +50,7 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
                 chapter.toggle();
             }
         });
-        setUpdateTrigger(!updateTrigger);
-        updateLibrary();
-        console.log(`setAllChapters pressed to ${read}`);
+        saveChapterUpdate();
     };
 
     const allRead = story.chapters.every(chapter => chapter.read);
@@ -59,7 +61,7 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
             <div className="cover-row">
                 {story.cover ? (
                     <img
-                        src={`/${story.cover}`}
+                        src={`/images/${story.cover}`}
                         alt="Cover"
                         className="cover-image"
                         onError={(e) => {

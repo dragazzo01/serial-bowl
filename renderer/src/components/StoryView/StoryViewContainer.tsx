@@ -2,25 +2,28 @@
 import React, { useState } from 'react';
 import DetailStoryPanel from './DetailStoryPanel';
 import EditStoryPanel from './EditStoryPanel';
-import { Story } from '../data/library';
-import { useLibrary } from '../data/libraryContext';
+import { Story } from '../../data/library';
+import { useLibrary } from '../../data/libraryContext';
 
-const StoryViewContainer: React.FC<{ story: Story }> = ({ story }) => {
-    const [currentView, setCurrentView] = useState<'detail' | 'edit' | 'none'>('detail');
+interface StoryViewContainerProps {
+    story: Story;
+    refreshGrid: () => void;
+    onDelete: () => void;
+}
+
+const StoryViewContainer: React.FC<StoryViewContainerProps> = ({
+    story,
+    refreshGrid,
+    onDelete,
+}) => {
+    const [currentView, setCurrentView] = useState<'detail' | 'edit'>('detail');
     const { library, updateLibrary } = useLibrary();
 
-    const handleSave = () => {
+    const handleSave = (_: Story) => {
         updateLibrary();
+        refreshGrid();
         setCurrentView('detail');
     };
-
-    const handleDelete = () => {
-        library.deleteStory(story);
-        updateLibrary();
-        setCurrentView('none');
-    };
-
-
 
     return (
         <div className="story-view-container">
@@ -28,16 +31,17 @@ const StoryViewContainer: React.FC<{ story: Story }> = ({ story }) => {
                 <DetailStoryPanel
                     story={story}
                     onEdit={() => setCurrentView('edit')}
+                    refreshGrid={refreshGrid}
                 />
             ) : currentView === 'edit' ? (
                 <EditStoryPanel
                     story={story}
                     onSave={handleSave}
                     onCancel={() => setCurrentView('detail')}
-                    onDelete={handleDelete}
+                    onDelete={onDelete}
                 />
             ) : (
-                <h1> Select A Story </h1>
+                <h1> Story Deleted </h1>
             )}
         </div>
     );

@@ -100,6 +100,17 @@ export class Story {
         this.chapters = story_dict.chapters.map(chap => new Chapter(chap));
     }
 
+    static empty(): Story {
+        return new Story({
+            title: "No Story",
+            coverImage: "",
+            summary: "",
+            homepageURL: "",
+            checkForUpdates: false,
+            chapters: [],
+        });
+    }
+
     editStory(edited_dict: Partial<StoryData>): void {
         if (edited_dict.title) this.title = edited_dict.title;
         if (edited_dict.coverImage) this.cover = edited_dict.coverImage;
@@ -195,8 +206,8 @@ export class Library {
         }
     }
 
-    addStory(story_dict: StoryData): void {
-        this.stories.push(new Story(story_dict));
+    addStory(story: Story): void {
+        this.stories.push(story);
     }
 
     grid(): Story[] {

@@ -1,0 +1,126 @@
+/* StoryWidget.css */
+.story-widget {
+    display: flex;
+    flex-direction: column;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 12px;
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    height: 100%;
+    box-sizing: border-box;
+}
+
+.story-widget:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+/* Color variants */
+.story-widget.finished-updates {
+    background-color: #e0e0e0;
+    border-left: 4px solid #4caf50;
+}
+
+.story-widget.finished-no-updates {
+    background-color: #f5f5f5;
+    border-left: 4px solid #9e9e9e;
+}
+
+.story-widget.unfinished-updates {
+    background-color: #ffe1e1;
+    border-left: 4px solid #ff0707;
+}
+
+.story-widget.unfinished-no-updates {
+    background-color: #e3f2fd;
+    border-left: 4px solid #2196f3;
+}
+
+.cover-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-bottom: 12px;
+    min-height: 180px;
+    background-color: #f9f9f9;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.cover-image {
+    max-width: 100%;
+    max-height: 180px;
+    object-fit: contain;
+}
+
+.no-cover {
+    color: #999;
+    font-style: italic;
+}
+
+.info-container {
+    display: flex;
+    flex-direction: column;
+}
+
+.story-title {
+    margin: 0 0 8px 0;
+    font-size: 1rem;
+    font-weight: bold;
+    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    line-clamp: 2;
+    -webkit-box-orient: vertical;
+}
+
+.updates-button {
+    margin: 4px 0;
+    padding: 4px 8px;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+    align-self: flex-start;
+}
+
+.updates-button:hover {
+    background-color: #e0e0e0;
+}
+
+.chapter-link {
+    margin: 2px 0;
+    font-size: 0.85rem;
+    color: #555;
+}
+
+.chapter-link.clickable {
+    color: #1976d2;
+    text-decoration: underline;
+    cursor: pointer;
+}
+
+.read-button {
+    margin-top: 8px;
+    padding: 6px 12px;
+    background-color: #4caf50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.read-button:disabled {
+    background-color: #bdbdbd;
+    cursor: not-allowed;
+}
+
+.read-button:not(:disabled):hover {
+    background-color: #388e3c;
+}

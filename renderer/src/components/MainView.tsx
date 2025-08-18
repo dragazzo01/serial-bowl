@@ -1,21 +1,28 @@
 // renderer/src/components/MainView.tsx
 import React, { useEffect, useState } from 'react';
+import { Story, Chapter } from '../data/library';
 import { useLibrary } from '../data/libraryContext';
-import StoryViewContainer from './StoryViewContainer';
-import { Library, Story } from '../data/library';
+import './MainView.css'
+
+import StoryViewContainer from './StoryView/StoryViewContainer';
+import StoryGrid from './StoryGrid/StoryGrid'
+import MultiWindowManager from './MultiWindowManager';
+import DeleteStory from './DeleteStory'
+import EditStoryPanel from './StoryView/EditStoryPanel';
+
 
 const MainView: React.FC = () => {
     const { library, loadLibrary, updateLibrary } = useLibrary();
     const [isLoading, setIsLoading] = useState(true);
-    const [firstStory, setFirstStory] = useState<Story | null>(null);
+    const [stories, setStories] = useState<Story[]>([]);
+    const [selectedStory, setSelectedStory] = useState<Story>(Story.empty());
+    const [sideWindow, setSideWindow] = useState<'detail' | 'add' | 'delete' | 'none'>('none');
 
     useEffect(() => {
         const init = async () => {
             try {
                 const loadedLibrary = await loadLibrary();
-                if (loadedLibrary.stories.length > 0) {
-                    setFirstStory(loadedLibrary.stories[0]);
-                }
+                setStories(loadedLibrary.stories);
             } catch (error) {
                 console.error('Failed to load library:', error);
             } finally {
@@ -29,15 +36,110 @@ const MainView: React.FC = () => {
         return <div>Loading library...</div>;
     }
 
-    if (!firstStory) {
-        return <div>No stories found in the library</div>;
+    const handleStoryClick = (story: Story) => {
+        setSelectedStory(story);
+        setSideWindow('detail');
+    };
+
+    const handleSideWindowClose = () => {
+        setSideWindow('none');
     }
+
+    const handleToggleUpdates = (story: Story) => {
+        // Toggle updates for the story
+        story.checkForUpdates = !story.checkForUpdates;
+        updateLibrary();
+        setStories([...stories]); // Trigger re-render
+    };
+
+    const handleChapterClick = (chapter: Chapter) => {
+        chapter.openLink();
+        updateLibrary();
+        setStories([...stories]); // Trigger re-render
+    };
+
+    const deleteStoryList = (story: Story) => {
+        library.deleteStory(story);
+        updateLibrary();
+        setStories([...library.stories]);
+    }
+
+    const deleteStoryDetail = (story: Story) => {
+        library.deleteStory(story);
+        updateLibrary();
+        setStories([...library.stories]);
+        setSideWindow('none');
+    }
+
+    const handleCheckForUpdates = () => {
+        console.log("Check For Updates button pressed");
+    };
+
+    const handleNewStorySave = (story : Story) => {
+        library.addStory(story);
+        updateLibrary();
+        setStories([...library.stories]);
+        setSideWindow('none');
+    };
 
     return (
         <div className="main-view">
-            <StoryViewContainer story={firstStory} />
+            <div className="main-view-button-container">
+                <button
+                    onClick={handleCheckForUpdates}
+                    className="main-view-button"
+                >
+                    Check For Updates
+                </button>
+                <button
+                    onClick={() => setSideWindow('add')}
+                    className="main-view-button"
+                >
+                    Add Story
+                </button>
+                <button
+                    onClick={() => setSideWindow('delete')}
+                    className="main-view-button"
+                >
+                    Delete Story
+                </button>
+            </div>
+            <MultiWindowManager
+                mainComponent={
+                    <StoryGrid
+                        stories={stories}
+                        onStoryClick={handleStoryClick}
+                        onToggleUpdates={handleToggleUpdates}
+                        onChapterClick={handleChapterClick}
+                     />}
+                sideComponent={
+                    sideWindow == 'detail' ? 
+                        <StoryViewContainer 
+                            story={selectedStory} 
+                            refreshGrid={() => setStories([...stories])} 
+                            onDelete={() => deleteStoryDetail(selectedStory)}
+                        />
+                    : sideWindow == 'delete' ? 
+                        <DeleteStory
+                            stories={stories}
+                                onDelete={deleteStoryList} 
+                        />
+                    : sideWindow == 'add' ?
+                        <EditStoryPanel
+                            story={null}
+                            onSave={handleNewStorySave}
+                            onCancel={() => setSideWindow('none')}
+                            onDelete={() => console.error('Delete should be impossible')}
+                        />
+                    : null}
+                onClose={handleSideWindowClose}
+                defaultSideWindowWidth={400}
+            />
+
         </div>
     );
+
+    //return <DeleteStory/>
 };
 
 export default MainView;
