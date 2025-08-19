@@ -1,3 +1,5 @@
+import path from 'path'
+
 function getDate(): string {
     return new Date().toLocaleDateString('en-US');
 }
@@ -71,7 +73,7 @@ export class Chapter {
     }
 }
 
-interface StoryData {
+export interface StoryData {
     title: string;
     coverImage: string;
     summary: string;
@@ -83,7 +85,8 @@ interface StoryData {
 
 export class Story {
     title: string;
-    cover: string;
+    coverRelativePath: string;
+    coverPath: string;
     summary: string;
     homepageURL: string;
     checkForUpdates: boolean;
@@ -92,7 +95,8 @@ export class Story {
 
     constructor(story_dict: StoryData) {
         this.title = story_dict.title;
-        this.cover = story_dict.coverImage;
+        this.coverRelativePath = story_dict.coverImage;
+        this.coverPath = story_dict.coverImage;
         this.summary = story_dict.summary;
         this.homepageURL = story_dict.homepageURL;
         this.checkForUpdates = story_dict.checkForUpdates;
@@ -111,9 +115,13 @@ export class Story {
         });
     }
 
+    async setCover() {
+        this.coverPath = await window.electronAPI.getImageUrl(this.coverRelativePath);
+    }
+
     editStory(edited_dict: Partial<StoryData>): void {
         if (edited_dict.title) this.title = edited_dict.title;
-        if (edited_dict.coverImage) this.cover = edited_dict.coverImage;
+        if (edited_dict.coverImage) this.coverRelativePath = edited_dict.coverImage;
         if (edited_dict.summary) this.summary = edited_dict.summary;
         if (edited_dict.homepageURL) this.homepageURL = edited_dict.homepageURL;
         if (edited_dict.checkForUpdates !== undefined) 
@@ -151,7 +159,7 @@ export class Story {
     serialize(): StoryData {
         const result: StoryData = {
             title: this.title,
-            coverImage: this.cover,
+            coverImage: this.coverRelativePath,
             homepageURL: this.homepageURL,
             summary: this.summary,
             checkForUpdates: this.checkForUpdates,
@@ -187,6 +195,7 @@ export class Library {
         }
         const library = new Library();
         library.stories = jsonList.map(story => new Story(story));
+        library.stories.forEach(story => story.setCover())
         return library;
     }
 
@@ -244,6 +253,7 @@ declare global {
             saveLibrary: (data: StoryData[]) => Promise<{ success: boolean }>;
             checkStoryUpdate: (story: StoryData) => Promise<ChapterData[]>;
             openExternal: (url: string) => void;
+            getImageUrl: (relativePath: string) => Promise<string>;
         };
     }
 }

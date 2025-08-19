@@ -9,6 +9,7 @@ import StoryGrid from './StoryGrid/StoryGrid'
 import MultiWindowManager from './MultiWindowManager';
 import DeleteStory from './DeleteStory'
 import EditStoryPanel from './StoryView/EditStoryPanel';
+import UpdateChecker from './UpdateChecker';
 
 
 const MainView: React.FC = () => {
@@ -16,7 +17,7 @@ const MainView: React.FC = () => {
     const [isLoading, setIsLoading] = useState(true);
     const [stories, setStories] = useState<Story[]>([]);
     const [selectedStory, setSelectedStory] = useState<Story>(Story.empty());
-    const [sideWindow, setSideWindow] = useState<'detail' | 'add' | 'delete' | 'none'>('none');
+    const [sideWindow, setSideWindow] = useState<'detail' | 'add' | 'delete' | 'update' | 'none'>('none');
 
     useEffect(() => {
         const init = async () => {
@@ -71,8 +72,13 @@ const MainView: React.FC = () => {
         setSideWindow('none');
     }
 
-    const handleCheckForUpdates = () => {
-        console.log("Check For Updates button pressed");
+    const handleCheckForUpdatesSave = (updated: { story: Story; chapters: Chapter[] }[]) => {
+        updated.forEach(r => {
+            r.story.newChapters(r.chapters);
+        })
+        updateLibrary();
+        setStories([...stories]);
+        setSideWindow('none');
     };
 
     const handleNewStorySave = (story : Story) => {
@@ -86,7 +92,7 @@ const MainView: React.FC = () => {
         <div className="main-view">
             <div className="main-view-button-container">
                 <button
-                    onClick={handleCheckForUpdates}
+                    onClick={() => setSideWindow('update')}
                     className="main-view-button"
                 >
                     Check For Updates
@@ -131,9 +137,15 @@ const MainView: React.FC = () => {
                             onCancel={() => setSideWindow('none')}
                             onDelete={() => console.error('Delete should be impossible')}
                         />
+                    : sideWindow == 'update' ?
+                        <UpdateChecker
+                            stories={stories}
+                            onFinish={handleCheckForUpdatesSave}
+                            onCancel={() => setSideWindow('none')}
+                        />
                     : null}
                 onClose={handleSideWindowClose}
-                defaultSideWindowWidth={400}
+                defaultSideWindowWidth={sideWindow == 'update' ? 750 : 400}
             />
 
         </div>

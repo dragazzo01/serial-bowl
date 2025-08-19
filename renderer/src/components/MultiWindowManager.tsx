@@ -57,11 +57,11 @@ const MultiWindowManager: React.FC<MultiWindowManagerProps> = ({
 
     // Clean up event listeners
     useEffect(() => {
+        setSideWindowWidth(defaultSideWindowWidth);
         if (sideComponent) {
             setSideWindowOpen(true);
         } else {
             setSideWindowOpen(false);
-            setSideWindowWidth(defaultSideWindowWidth);
         }
     }, [sideComponent]);
 

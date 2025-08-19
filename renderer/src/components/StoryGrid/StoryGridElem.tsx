@@ -46,9 +46,9 @@ const StoryGridElem: React.FC<StoryGridElemProps> = ({
             onClick={() => onClick(story)}
         >
             <div className="cover-container">
-                {story.cover ? (
+                {story.coverPath ? (
                     <img
-                        src={`/images/${story.cover}`}
+                        src={`${story.coverPath}`}
                         alt={story.title}
                         className="cover-image"
                         onError={(e) => {

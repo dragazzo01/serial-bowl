@@ -1,7 +1,7 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, protocol } from 'electron';
 import { checkStoryUpdate } from './tracker';
-import { Story } from './library-shared';
-import * as path from 'path';
+import { Story } from './library-symlink';
+import path from 'path';
 import fs from 'fs/promises';
 
 const isDev = !app.isPackaged; // true when running `npm run dev`
@@ -13,6 +13,7 @@ function createWindow() {
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
     },
+    icon: path.join(PUBLIC_PATH, 'icon.ico')
   });
 
   if (isDev) {
@@ -29,13 +30,76 @@ app.whenReady().then(() => {
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) createWindow();
   });
+
+  protocol.handle('app-image', async (request) => {
+    try {
+      const relativePath = path.normalize(
+        decodeURIComponent(request.url.replace('app-image:///', ''))
+      );
+      
+
+      // Security check
+      const actualPath = path.join(app.getPath('appData'), 'serial-bowl', 'images', relativePath);
+
+      // Read file and properly convert to Blob
+      const buffer = await fs.readFile(actualPath);
+      const blob = new Blob([new Uint8Array(buffer)], {
+        type: getMimeType(actualPath)
+      });
+
+      return new Response(blob);
+    } catch (error) {
+      console.error(`Error loading image:`, error);
+      return new Response(null, { status: 404 });
+    }
+  });
 });
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
 
-const LIBRARY_PATH = path.join(__dirname, 'library.json');
+const PUBLIC_PATH = path.join(__dirname, '../../public/');
+const DEFAULT_LIBRARY_PATH = path.join(PUBLIC_PATH, 'library.json');
+const LIBRARY_PATH = path.join(app.getPath('userData'), 'library.json');
+
+async function initializeLibrary() {
+  try {
+    await fs.access(LIBRARY_PATH);
+  } catch (error) {
+    if ((error as any).code === 'ENOENT') {
+      try {
+        const defaultData = await fs.readFile(DEFAULT_LIBRARY_PATH, 'utf-8');
+        await fs.writeFile(LIBRARY_PATH, defaultData, 'utf-8');
+      } catch (err) {
+        console.error('Error initializing library:', err);
+        // Fallback to empty array
+        await fs.writeFile(LIBRARY_PATH, JSON.stringify([], null, 2), 'utf-8');
+      }
+    }
+  }
+}
+initializeLibrary();
+
+// Helper function to get MIME type
+function getMimeType(filePath: string): string {
+  const extension = path.extname(filePath).toLowerCase();
+  switch (extension) {
+    case '.jpg':
+    case '.jpeg':
+      return 'image/jpeg';
+    case '.png':
+      return 'image/png';
+    case '.gif':
+      return 'image/gif';
+    case '.webp':
+      return 'image/webp';
+    default:
+      return 'application/octet-stream';
+  }
+}
+
+
 // Handle loading the library
 ipcMain.handle('loadLibrary', async () => {
   try {
@@ -59,15 +123,9 @@ ipcMain.handle('saveLibrary', async (_, data) => {
 });
 
 ipcMain.handle('checkUpdate', async (_, storydata) => {
-  try {
-    const story = new Story(storydata)
+    const story = new Story(storydata);
     const newChapters = await checkStoryUpdate(story);
-    const chapterdata = newChapters.map(chapter => chapter.serialize())
-    return chapterdata;
-  } catch (error) {
-    console.error('Error checking for updates:', error);
-    return error instanceof Error ? error.message : String(error);
-  }
+    return newChapters.map(chapter => chapter.serialize());
 });
 
 // Add this IPC handler in main.ts (place it with the other handlers)

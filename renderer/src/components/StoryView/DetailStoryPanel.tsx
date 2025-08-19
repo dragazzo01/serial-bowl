@@ -17,7 +17,7 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
 }) => {
     const [showChaptersState, setShowChaptersState] = useState(false);
     const [updateTrigger, setUpdateTrigger] = useState(false); // Add this line
-    const { library, loadLibrary, updateLibrary } = useLibrary();
+    const { updateLibrary } = useLibrary();
 
     const saveChapterUpdate = () => {
         setUpdateTrigger(!updateTrigger);
@@ -59,9 +59,9 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
         <div className="detail-story-panel">
             {/* Cover and buttons row */}
             <div className="cover-row">
-                {story.cover ? (
+                {story.coverPath ? (
                     <img
-                        src={`/images/${story.cover}`}
+                        src={`${story.coverPath}`}
                         alt="Cover"
                         className="cover-image"
                         onError={(e) => {

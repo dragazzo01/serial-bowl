@@ -1,0 +1,70 @@
+.update-panel {
+    padding: 1rem;
+    border: 1px solid #ccc;
+    border-radius: 12px;
+    background: #fafafa;
+    max-width: 600px;
+    margin: auto;
+}
+
+.update-panel h3 {
+    margin-bottom: 0.5rem;
+    font-size: 1.2rem;
+}
+
+.progress-container {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+}
+
+progress {
+    flex: 1;
+    height: 1rem;
+}
+
+.results {
+    margin-top: 1rem;
+}
+
+.result {
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 0.5rem;
+    margin-bottom: 0.5rem;
+}
+
+.result.success strong {
+    color: green;
+}
+
+.result.error strong,
+.result.error p {
+    color: red;
+}
+
+.update-buttons {
+    margin-top: 1rem;
+    display: flex;
+    gap: 1rem;
+}
+
+
+.save-updates {
+    background: green;
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+}
+
+.cancel-updates {
+    background: #bbb;
+    color: black;
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+}

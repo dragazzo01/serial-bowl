@@ -21,8 +21,8 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
 
     const updateLibrary = async () => {
-        //await library.saveLibrary();
-        console.log(`Library would be saved at this point (did not actually save)`)
+        await library.saveLibrary();
+        //console.log(`Library would be saved at this point (did not actually save)`)
         //setLibrary(library);
     };
 

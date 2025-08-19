@@ -1,17 +1,15 @@
 // main/tracker.ts
-import { Story, Chapter } from './library-shared'; // Or import from renderer if you prefer
+import { Story, Chapter } from './library-symlink'; // Or import from renderer if you prefer
+import puppeteer from "puppeteer";
 import { JSDOM } from 'jsdom';
 
 export async function checkStoryUpdate(story: Story): Promise<Chapter[]> {
-    return [];
-    if (story.title.includes("Frieren")) {
+    if (story.homepageURL.includes("frieren.online")) {
         return frierenCheck(story);
-    } else if (story.title.includes("Test")) {
-        return [];
     } else if (story.homepageURL.includes("demonicscans.org")) {
         return demonicScansCheck(story);
-    //} else if (story.homepageURL.includes("ranobes.net")) {
-    //     return ranobesCheck(story);
+    } else if (story.homepageURL.includes("ranobes.net")) {
+        return ranobesCheck(story);
     } else if (story.homepageURL.includes("royalroad.com")) {
         return royalRoadChecker(story);
     } else if (story.homepageURL.includes("genesistudio.com")) {
@@ -20,14 +18,14 @@ export async function checkStoryUpdate(story: Story): Promise<Chapter[]> {
         throw new Error("No checker assigned to this story");
     }
 }
-
-async function baseRequest(url: string): Promise<string> {
-    const response = await fetch(url, {
+const defaultUA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+export async function baseRequest(url: string, userAgent: string = defaultUA): Promise<string> {
+    const response = await fetch(url, { 
+        method: "GET",
+        credentials: "include",  // 🔑 send browser cookies
         headers: {
-            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-            'Accept-Language': 'en-US,en;q=0.5',
-            'Referer': 'https://www.google.com/'
+            "User-Agent": userAgent, // use the real browser UA
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"
         }
     });
 
@@ -38,8 +36,61 @@ async function baseRequest(url: string): Promise<string> {
     return await response.text();
 }
 
-function latestTitle(story: Story): string {
+export function latestTitle(story: Story): string {
     return story.getLastKnownChapter().title;
+}
+
+async function ranobesCheck(story: Story): Promise<Chapter[]> {
+    const browser = await puppeteer.launch({
+        headless: false, // show browser so you can solve CAPTCHA
+    });
+    const page = await browser.newPage();
+
+    await page.goto(story.additionalInfo?.chapters_link, {
+        waitUntil: "domcontentloaded"
+    });
+
+    // Give yourself some time to solve the captcha manually
+    await new Promise(resolve => setTimeout(resolve, 6000));
+
+    const response = await page.content();
+    await browser.close();
+
+    // maybe one of these days
+    // console.log(userAgent);
+    //const response = await baseRequest('https://ranobes.net/chapters/1205249/');
+
+    const dom = new JSDOM(response);
+    const doc = dom.window.document;
+
+    // Grab all chapter blocks
+    const divs = doc.querySelectorAll('div.cat_block.cat_line');
+    const latestChapter = latestTitle(story);
+    const newChapters: Chapter[] = [];
+
+    if (divs.length > 0) {
+        const firstChild = divs[0].querySelector('*'); // first element inside
+        if (firstChild && firstChild.getAttribute('title') === latestChapter) {
+            return [];
+        }
+    } else {
+        throw new Error("No Chapters Detected (likely a captcha)"); 
+    }
+
+    for (const div of Array.from(divs)) {
+        const firstChild = div.querySelector('*'); // gets the first element inside
+        if (!firstChild) continue;
+
+        const chapTitle = firstChild.getAttribute('title') || '';
+        const url = firstChild.getAttribute('href') || '';
+        console.log(`${chapTitle}`)
+
+        if (chapTitle === latestChapter) {
+            break;
+        }
+        newChapters.push(Chapter.new(chapTitle, url));
+    }
+    return newChapters.reverse();
 }
 
 async function demonicScansCheck(story: Story): Promise<Chapter[]> {
@@ -207,21 +258,3 @@ async function genesisChecker(story: Story): Promise<Chapter[]> {
     
     return newChapters.reverse();
 }
-
-// Implement other checkers similarly...
-
-// Note: For sites requiring Selenium (like ranobesCheck), you might need a different approach
-// since Electron's main process doesn't have a DOM. You could:
-// 1. Use a headless browser library like Puppeteer
-// 2. Implement a simple HTTP server in the main process that the renderer can communicate with
-// 3. Or find alternative scraping methods that don't require a full browser
-
-// Preload.ts would expose this via:
-// contextBridge.exposeInMainWorld('trackerAPI', {
-//     checkStoryUpdate: (story: Story) => ipcRenderer.invoke('tracker:check-update', story)
-// });
-
-// And in main.ts you'd handle the IPC call:
-// ipcMain.handle('tracker:check-update', async (event, story) => {
-//     return await checkStoryUpdate(story);
-// });

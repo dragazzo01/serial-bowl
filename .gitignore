@@ -77,3 +77,4 @@ output.html
 .sass-cache/
 *.css.map
 main/test.ts
+public/

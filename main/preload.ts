@@ -6,4 +6,5 @@ contextBridge.exposeInMainWorld('electronAPI', {
   saveLibrary: (data: unknown) => ipcRenderer.invoke('saveLibrary', data),
   checkStoryUpdate: (story: unknown) => ipcRenderer.invoke('checkUpdate', story),
   openExternal: (url: string) => ipcRenderer.invoke('openExternal', url),
+  getImageUrl: (relativePath: string) => `app-image:///${encodeURIComponent(relativePath)}`,
 });
