@@ -103,7 +103,7 @@ function getMimeType(filePath: string): string {
 // Handle loading the library
 ipcMain.handle('loadLibrary', async () => {
   try {
-    const data = await fs.readFile(LIBRARY_PATH, 'utf-8');
+    const data = await fs.readFile(isDev ? DEFAULT_LIBRARY_PATH :  LIBRARY_PATH, 'utf-8');
     return JSON.parse(data);
   } catch (error) {
     console.error('Error loading library:', error);
@@ -114,6 +114,7 @@ ipcMain.handle('loadLibrary', async () => {
 // Handle saving the library
 ipcMain.handle('saveLibrary', async (_, data) => {
   try {
+    if (isDev) return { success: true }
     await fs.writeFile(LIBRARY_PATH, JSON.stringify(data, null, 2), 'utf-8');
     return { success: true };
   } catch (error) {

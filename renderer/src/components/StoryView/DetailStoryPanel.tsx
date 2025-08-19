@@ -2,6 +2,7 @@
 import React, { useState } from 'react';
 import { Story, Chapter } from '../../data/library';
 import { useLibrary } from '../../data/libraryContext';
+import AddChapterForm from './AddChapterForm'
 import './DetailStoryPanel.css';
 
 interface DetailStoryPanelProps {
@@ -16,7 +17,9 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
     refreshGrid,
 }) => {
     const [showChaptersState, setShowChaptersState] = useState(false);
-    const [updateTrigger, setUpdateTrigger] = useState(false); // Add this line
+    const [updateTrigger, setUpdateTrigger] = useState(false);
+    const [deleteMode, setDeleteMode] = useState(false); 
+    const [showAddChapterForm, setShowAddChapterForm] = useState(false);
     const { updateLibrary } = useLibrary();
 
     const saveChapterUpdate = () => {
@@ -25,32 +28,60 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
         updateLibrary();
     }
 
-
     const toggleChapter = (chapter: Chapter) => {
-        chapter.toggle()
+        chapter.toggle();
         saveChapterUpdate();
     };
 
     const openLink = (chapter: Chapter) => {
-        chapter.openLink()
-        saveChapterUpdate();;
+        chapter.openLink();
+        saveChapterUpdate();
     };
 
     const addChapter = () => {
-        console.log(`addChapter pressed`);
+        setShowAddChapterForm(true);
     };
 
-    const deleteChapter = () => {
-        console.log(`deleteChapter pressed`);
+    const handleDeleteChapter = (chapter: Chapter) => {
+        // Remove the chapter from the story's chapters array
+        const chapterIndex = story.chapters.indexOf(chapter);
+        if (chapterIndex !== -1) {
+            story.chapters.splice(chapterIndex, 1);
+            saveChapterUpdate();
+        }
+    };
+
+    const toggleDeleteMode = () => {
+        setDeleteMode(!deleteMode);
     };
 
     const setAllChapters = (read: boolean) => {
+        if (deleteMode) return; // Don't allow read/unread all while in delete mode
+        
         story.chapters.forEach(chapter => {
             if (chapter.read !== read) {
                 chapter.toggle();
             }
         });
         saveChapterUpdate();
+    };
+
+    const handleSaveNewChapter = (chapter: Chapter, position: number) => {
+        // if (position === 'first') {
+        //     story.chapters.unshift(chapter);
+        // } else if (position === 'last') {
+        //     story.chapters.push(chapter);
+        // } else if (typeof position === 'number') {
+        //     story.chapters.splice(position, 0, chapter);
+        // }
+        // saveChapterUpdate();
+        story.addChapter(chapter, position);
+        saveChapterUpdate();
+        setShowAddChapterForm(false);
+    };
+
+    const handleCancelAddChapter = () => {
+        setShowAddChapterForm(false);
     };
 
     const allRead = story.chapters.every(chapter => chapter.read);
@@ -108,25 +139,39 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
             {/* Chapters section */}
             {showChaptersState && (
                 <div className="chapters-section">
-                    <div className="chapters-header">
+                    {showAddChapterForm ? (
+                        <AddChapterForm
+                            onSave={handleSaveNewChapter}
+                            onCancel={handleCancelAddChapter}
+                            totalChapters={story.chapters.length}
+                        />
+                    ) : (
+                    <>
+                        <div className="chapters-header">
                         <h3>Chapters:</h3>
-                        <button
-                            onClick={() => setAllChapters(!allRead)}
-                            className="chapters-action-button"
-                        >
-                            {allRead ? 'UNREAD ALL' : 'READ ALL'}
-                        </button>
+                        {!deleteMode && (
+                            <button
+                                onClick={() => setAllChapters(!allRead)}
+                                className="chapters-action-button"
+                            >
+                                {allRead ? 'UNREAD ALL' : 'READ ALL'}
+                            </button>
+
+                        )}
+                        {!deleteMode && (
+                            <button
+                                onClick={addChapter}
+                                className="chapters-action-button"
+                            >
+                                Add Chapter
+                            </button>
+
+                        )}
                         <button 
-                            onClick={addChapter}
-                            className="chapters-action-button"
+                            onClick={toggleDeleteMode}
+                            className={`chapters-action-button ${deleteMode ? 'delete-mode-active' : ''}`}
                         >
-                            Add Chapter
-                        </button>
-                        <button 
-                            onClick={deleteChapter}
-                            className="chapters-action-button"
-                        >
-                            Delete Chapter
+                            {deleteMode ? 'Cancel Delete' : 'Delete Chapter'}
                         </button>
                     </div>
 
@@ -134,23 +179,30 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
                         {[...story.chapters].reverse().map((chapter, index) => (
                             <div key={index} className="chapter-item">
                                 <button
-                                    onClick={() => toggleChapter(chapter)}
-                                    className="chapter-toggle"
+                                    onClick={() => deleteMode ? handleDeleteChapter(chapter) : toggleChapter(chapter)}
+                                    className={`chapter-toggle ${deleteMode ? 'delete-mode' : ''}`}
                                 >
-                                    {chapter.read ? '✓' : '✗'}
+                                    {deleteMode ? '🗑️' : (chapter.read ? '✓' : '✗')}
                                 </button>
                                 <span
                                     className={`chapter-title ${chapter.url ? 'has-link' : ''}`}
-                                    onClick={() => chapter.url && openLink(chapter)}
+                                    onClick={() => chapter.url && !deleteMode && openLink(chapter)}
                                 >
                                     {chapter.title}
                                 </span>
-                                {chapter.read && chapter.dateRead && (
+                                {chapter.read && chapter.dateRead && !deleteMode && (
                                     <span className="chapter-date">(Read: {chapter.dateRead})</span>
                                 )}
                             </div>
                         ))}
                     </div>
+                    {deleteMode && (
+                        <div className="delete-mode-notice">
+                            Click on the trash can icons to delete chapters
+                        </div>
+                    )}
+                    </>
+                    )}
                 </div>
             )}
         </div>

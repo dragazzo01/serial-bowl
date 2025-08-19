@@ -21,7 +21,7 @@ const EditStoryPanel: React.FC<EditStoryPanelProps> = ({
     // Create a state object with default values
     const [editedStory, setEditedStory] = useState({
         title: story?.title || '',
-        coverImage: story?.cover || '',
+        coverImage: story?.coverRelativePath || '',
         summary: story?.summary || '',
         homepageURL: story?.homepageURL || '',
         checkForUpdates: story?.checkForUpdates || false,

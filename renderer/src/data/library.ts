@@ -121,7 +121,10 @@ export class Story {
 
     editStory(edited_dict: Partial<StoryData>): void {
         if (edited_dict.title) this.title = edited_dict.title;
-        if (edited_dict.coverImage) this.coverRelativePath = edited_dict.coverImage;
+        if (edited_dict.coverImage) {
+            this.coverRelativePath = edited_dict.coverImage;
+            this.setCover();
+        }
         if (edited_dict.summary) this.summary = edited_dict.summary;
         if (edited_dict.homepageURL) this.homepageURL = edited_dict.homepageURL;
         if (edited_dict.checkForUpdates !== undefined) 
@@ -152,8 +155,12 @@ export class Story {
         return unread || null;
     }
 
-    newChapters(new_chapters: Chapter[]): void {
-        this.chapters.push(...new_chapters);
+    newChapters(newChapters: Chapter[]): void {
+        this.chapters.push(...newChapters);
+    }
+
+    addChapter(newChapter: Chapter, position: number) {
+        this.chapters.splice(position, 0, newChapter);
     }
 
     serialize(): StoryData {

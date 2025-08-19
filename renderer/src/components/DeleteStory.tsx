@@ -50,9 +50,9 @@ const DeleteStory: React.FC<DeleteStoryProps> = ({ stories, onDelete }) => {
                             <li key={story.title} className="story-item">
                                 <div className="story-info">
                                     <h3>{story.title}</h3>
-                                    {story.cover && (
+                                    {story.coverPath && (
                                         <img
-                                            src={`/images/${story.cover}`}
+                                            src={`/images/${story.coverPath}`}
                                             alt={`Cover for ${story.title}`}
                                             className="story-cover"
                                         />
