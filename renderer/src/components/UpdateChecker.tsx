@@ -3,6 +3,7 @@ import "./UpdateChecker.css";
 import { Story, Chapter } from "../data/library";
 import ConfirmationDialogue from './ConfirmationDialogue';
 import useConfirmation from '../hooks/useConfirmation';
+import api from '../api/api'
 
 //import { checkStoryUpdateNew } from "../data/tracker";
 
@@ -41,7 +42,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ stories, onFinish, onCanc
             }
 
             try {
-                const newChaptersData = await window.electronAPI.checkStoryUpdate(story.serialize());
+                const newChaptersData = await api.checkStoryUpdate(story.serialize());
                 const newChapters = newChaptersData.map((c) => new Chapter(c));
 
 

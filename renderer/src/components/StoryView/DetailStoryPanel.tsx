@@ -67,14 +67,6 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
     };
 
     const handleSaveNewChapter = (chapter: Chapter, position: number) => {
-        // if (position === 'first') {
-        //     story.chapters.unshift(chapter);
-        // } else if (position === 'last') {
-        //     story.chapters.push(chapter);
-        // } else if (typeof position === 'number') {
-        //     story.chapters.splice(position, 0, chapter);
-        // }
-        // saveChapterUpdate();
         story.addChapter(chapter, position);
         saveChapterUpdate();
         setShowAddChapterForm(false);

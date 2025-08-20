@@ -1,5 +1,5 @@
 // main/tracker.ts
-import { Story, Chapter } from './library-symlink'; // Or import from renderer if you prefer
+import { Story, Chapter } from './lib'; // Or import from renderer if you prefer
 import puppeteer from "puppeteer";
 import { JSDOM } from 'jsdom';
 

@@ -1,8 +1,9 @@
 import { app, BrowserWindow, ipcMain, shell, protocol } from 'electron';
 import { checkStoryUpdate } from './tracker';
-import { Story } from './library-symlink';
+import { Story } from './lib';
 import path from 'path';
 import fs from 'fs/promises';
+import { exec } from "child_process";
 
 const isDev = !app.isPackaged; // true when running `npm run dev`
 
@@ -39,7 +40,8 @@ app.whenReady().then(() => {
       
 
       // Security check
-      const actualPath = path.join(app.getPath('appData'), 'serial-bowl', 'images', relativePath);
+      //const actualPath = path.join(app.getPath('appData'), 'serial-bowl', 'images', relativePath);
+      const actualPath = path.join(ASSETSDIR, 'images', relativePath);
 
       // Read file and properly convert to Blob
       const buffer = await fs.readFile(actualPath);
@@ -61,21 +63,17 @@ app.on('window-all-closed', () => {
 
 const PUBLIC_PATH = path.join(__dirname, '../../public/');
 const DEFAULT_LIBRARY_PATH = path.join(PUBLIC_PATH, 'library.json');
-const LIBRARY_PATH = path.join(app.getPath('userData'), 'library.json');
+const ASSETSDIR = "C:\\Users\\draga\\Documents\\serial-bowl-assets";
+const LIBRARY_PATH = path.join(ASSETSDIR, 'library.json');
 
 async function initializeLibrary() {
   try {
     await fs.access(LIBRARY_PATH);
   } catch (error) {
     if ((error as any).code === 'ENOENT') {
-      try {
-        const defaultData = await fs.readFile(DEFAULT_LIBRARY_PATH, 'utf-8');
-        await fs.writeFile(LIBRARY_PATH, defaultData, 'utf-8');
-      } catch (err) {
-        console.error('Error initializing library:', err);
-        // Fallback to empty array
-        await fs.writeFile(LIBRARY_PATH, JSON.stringify([], null, 2), 'utf-8');
-      }
+      console.error('Error initializing library:', error);
+      // Fallback to empty array
+      //await fs.writeFile(LIBRARY_PATH, JSON.stringify([], null, 2), 'utf-8');
     }
   }
 }
@@ -103,7 +101,7 @@ function getMimeType(filePath: string): string {
 // Handle loading the library
 ipcMain.handle('loadLibrary', async () => {
   try {
-    const data = await fs.readFile(isDev ? DEFAULT_LIBRARY_PATH :  LIBRARY_PATH, 'utf-8');
+    const data = await fs.readFile(/*isDev ? DEFAULT_LIBRARY_PATH :*/  LIBRARY_PATH, 'utf-8');
     return JSON.parse(data);
   } catch (error) {
     console.error('Error loading library:', error);
@@ -114,8 +112,10 @@ ipcMain.handle('loadLibrary', async () => {
 // Handle saving the library
 ipcMain.handle('saveLibrary', async (_, data) => {
   try {
-    if (isDev) return { success: true }
-    await fs.writeFile(LIBRARY_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    if (!isDev) 
+      await fs.writeFile(LIBRARY_PATH, JSON.stringify(data, null, 2), 'utf-8');
+
+    console.log('would love to save to git rn')
     return { success: true };
   } catch (error) {
     console.error('Error saving library:', error);
@@ -132,4 +132,29 @@ ipcMain.handle('checkUpdate', async (_, storydata) => {
 // Add this IPC handler in main.ts (place it with the other handlers)
 ipcMain.handle('openExternal', async (_, url) => {
   shell.openExternal(url);
+});
+
+// getImageURL is app.whenReady().then(()=> ...)
+
+function runGitCommand(command: string): Promise<string> {
+  return new Promise((resolve, reject) => {
+    exec(command, { cwd: ASSETSDIR }, (error, stdout, stderr) => {
+      if (error) {
+        reject(stderr || error.message);
+      } else {
+        resolve(stdout.trim());
+      }
+    });
+  });
+}
+
+ipcMain.handle("saveToCloud", async (_) => {
+  try {
+    await runGitCommand("git add .");
+    await runGitCommand(`git commit -m "desktop saved"`);
+    await runGitCommand("git push");
+    return { success: true, message: "Changes pushed to cloud" };
+  } catch (err) {
+    return { success: false, message: String(err) };
+  }
 });

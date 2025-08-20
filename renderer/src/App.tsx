@@ -1,6 +1,5 @@
 // renderer/src/App.tsx
 import { LibraryProvider } from './data/libraryContext';
-import DetailStoryPanel from './components/StoryView/DetailStoryPanel';
 import MainView from './components/MainView';
 
 

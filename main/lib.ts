@@ -1,5 +1,3 @@
-import api from '../api/api'
-
 function getDate(): string {
     return new Date().toLocaleDateString('en-US');
 }
@@ -51,16 +49,16 @@ export class Chapter {
         }
     }
 
-    openLink(): void {
-        // Add this import at the top of your file
-        if (this.url) {
-            if (!this.read) {
-                this.read = true;
-                this.dateRead = getDate();
-            }
-            api.openExternal(this.url);
-        }
-    }
+    // openLink(): void {
+    //     // Add this import at the top of your file
+    //     if (this.url) {
+    //         if (!this.read) {
+    //             this.read = true;
+    //             this.dateRead = getDate();
+    //         }
+    //         api.openExternal(this.url);
+    //     }
+    // }
 
     serialize(): ChapterData {
         return {
@@ -116,7 +114,7 @@ export class Story {
     }
 
     async setCover() {
-        this.coverPath = await api.getImageUrl(this.coverRelativePath);
+        //this.coverPath = await api.getImageUrl(this.coverRelativePath);
     }
 
     editStory(edited_dict: Partial<StoryData>): void {
@@ -127,7 +125,7 @@ export class Story {
         }
         if (edited_dict.summary) this.summary = edited_dict.summary;
         if (edited_dict.homepageURL) this.homepageURL = edited_dict.homepageURL;
-        if (edited_dict.checkForUpdates !== undefined) 
+        if (edited_dict.checkForUpdates !== undefined)
             this.checkForUpdates = edited_dict.checkForUpdates;
     }
 
@@ -142,11 +140,11 @@ export class Story {
 
     getLastReadChapter(): Chapter {
         if (this.chapters.length === 0) return Chapter.empty();
-        
+
         for (let i = this.chapters.length - 1; i >= 0; i--) {
             if (this.chapters[i].read) return this.chapters[i];
         }
-        
+
         return Chapter.empty();
     }
 
@@ -172,11 +170,11 @@ export class Story {
             checkForUpdates: this.checkForUpdates,
             chapters: this.chapters.map(c => c.serialize())
         };
-        
+
         if (this.additionalInfo !== undefined) {
             result.additionalInfo = this.additionalInfo;
         }
-        
+
         return result;
     }
 }
@@ -187,29 +185,29 @@ export class Library {
     constructor() {
         this.stories = []
     }
-    // Alternative better approach: use a static async factory method
-    static async create(): Promise<Library> {
-        let jsonList: StoryData[];
-        
-        try {
-            jsonList = await api.loadLibrary();
-        } catch (error) {
-            if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-                jsonList = [];
-            } else {
-                throw error;
-            }
-        }
-        const library = new Library();
-        library.stories = jsonList.map(story => new Story(story));
-        library.stories.forEach(story => story.setCover())
-        return library;
-    }
+    // // Alternative better approach: use a static async factory method
+    // static async create(): Promise<Library> {
+    //     let jsonList: StoryData[];
 
-    async saveLibrary(): Promise<void> {
-        await api.saveLibrary(this.stories.map(s => s.serialize()));
-        console.log(`Saved Successfully`);
-    }
+    //     try {
+    //         jsonList = await api.loadLibrary();
+    //     } catch (error) {
+    //         if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
+    //             jsonList = [];
+    //         } else {
+    //             throw error;
+    //         }
+    //     }
+    //     const library = new Library();
+    //     library.stories = jsonList.map(story => new Story(story));
+    //     library.stories.forEach(story => story.setCover())
+    //     return library;
+    // }
+
+    // async saveLibrary(): Promise<void> {
+    //     await api.saveLibrary(this.stories.map(s => s.serialize()));
+    //     console.log(`Saved Successfully`);
+    // }
 
     getStory(title: string): Story | undefined {
         return this.stories.find(s => s.title === title);
@@ -226,26 +224,26 @@ export class Library {
         this.stories.push(story);
     }
 
-    // grid(): Story[] {
-    //     const gridOrder: Story[] = [];
-    //     let yellowInsert = 0;
-        
-    //     for (const story of this.stories) {
-    //         if (story.finished()) {
-    //             // Finished stories at back
-    //             gridOrder.push(story);
-    //         } else if (story.checkForUpdates) {
-    //             // Stories checking for updates at front
-    //             gridOrder.unshift(story);
-    //             yellowInsert++;
-    //         } else {
-    //             // Other stories in middle
-    //             gridOrder.splice(yellowInsert, 0, story);
-    //         }
-    //     }
-        
-    //     return gridOrder;
-    // }
+    grid(): Story[] {
+        const gridOrder: Story[] = [];
+        let yellowInsert = 0;
+
+        for (const story of this.stories) {
+            if (story.finished()) {
+                // Finished stories at back
+                gridOrder.push(story);
+            } else if (story.checkForUpdates) {
+                // Stories checking for updates at front
+                gridOrder.unshift(story);
+                yellowInsert++;
+            } else {
+                // Other stories in middle
+                gridOrder.splice(yellowInsert, 0, story);
+            }
+        }
+
+        return gridOrder;
+    }
 
     serialize(): StoryData[] {
         return this.stories.map(s => s.serialize());

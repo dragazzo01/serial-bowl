@@ -11,12 +11,70 @@
     box-sizing: border-box;
 }
 
+/* Mobile responsiveness */
+@media (max-width: 480px) {
+    .story-widget {
+        padding: 16px;
+        min-height: 220px;
+        /* Taller on mobile */
+        margin: 0 8px;
+    }
+
+    .cover-container {
+        min-height: 200px;
+        /* Larger cover area */
+        margin-bottom: 16px;
+    }
+
+    .cover-image {
+        max-height: 200px;
+    }
+
+    .story-title {
+        font-size: 1.1rem;
+        /* Larger text */
+        margin-bottom: 12px;
+    }
+
+    .updates-button {
+        padding: 6px 12px;
+        font-size: 0.9rem;
+        margin: 8px 0;
+    }
+
+    .chapter-link {
+        font-size: 0.95rem;
+        margin: 4px 0;
+    }
+
+    .read-button {
+        padding: 8px 16px;
+        font-size: 1rem;
+        margin-top: 12px;
+    }
+}
+
+@media (min-width: 481px) and (max-width: 767px) {
+    .story-widget {
+        padding: 14px;
+        min-height: 200px;
+    }
+
+    .cover-container {
+        min-height: 190px;
+    }
+
+    .cover-image {
+        max-height: 190px;
+    }
+}
+
 .story-widget:hover {
     transform: translateY(-2px);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
 
-/* Color variants */
+/* Rest of your existing styles remain unchanged */
 .story-widget.finished-updates {
     background-color: #e0e0e0;
     border-left: 4px solid #4caf50;

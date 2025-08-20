@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import { Story, Chapter } from '../data/library';
 import { useLibrary } from '../data/libraryContext';
+import api from '../api/api'
 import './MainView.css'
 
 import StoryViewContainer from './StoryView/StoryViewContainer';
@@ -10,6 +11,8 @@ import MultiWindowManager from './MultiWindowManager';
 import DeleteStory from './DeleteStory'
 import EditStoryPanel from './StoryView/EditStoryPanel';
 import UpdateChecker from './UpdateChecker';
+import ConfirmationDialogue from './ConfirmationDialogue';
+import useConfirmation from '../hooks/useConfirmation'
 
 
 const MainView: React.FC = () => {
@@ -18,6 +21,13 @@ const MainView: React.FC = () => {
     const [stories, setStories] = useState<Story[]>([]);
     const [selectedStory, setSelectedStory] = useState<Story>(Story.empty());
     const [sideWindow, setSideWindow] = useState<'detail' | 'add' | 'delete' | 'update' | 'none'>('none');
+    const {
+        isOpen,
+        askConfirmation,
+        handleConfirm,
+        handleCancel,
+        config,
+    } = useConfirmation();
 
     useEffect(() => {
         const init = async () => {
@@ -88,11 +98,46 @@ const MainView: React.FC = () => {
         setSideWindow('none');
     };
 
+    const handleCheckForUpdatesClick = () => {
+        askConfirmation(
+            `Are you sure you want to check for updates?`,
+            () => setSideWindow('update'),
+            'Check For Updates',
+            'Cancel',
+        )
+    }
+
+    const handleSaveToCloud = async () => {
+        askConfirmation(
+            `Are you sure you want to save to cloud?`,
+            async () => {
+                await api.saveToCloud()
+                // if (success) {
+                //     console.log('it worked!!!')
+                // } else {
+                //     console.error(message)
+                // }
+            },
+            'Save',
+            'Cancel',
+        )
+        
+    }
+
     return (
         <div className="main-view">
+            {isOpen && config && (
+                <ConfirmationDialogue
+                    message={config.message}
+                    onConfirm={handleConfirm}
+                    onCancel={handleCancel}
+                    confirmText={config.confirmText}
+                    cancelText={config.cancelText}
+                />
+            )}
             <div className="main-view-button-container">
                 <button
-                    onClick={() => setSideWindow('update')}
+                    onClick={handleCheckForUpdatesClick}
                     className="main-view-button"
                 >
                     Check For Updates
@@ -108,6 +153,12 @@ const MainView: React.FC = () => {
                     className="main-view-button"
                 >
                     Delete Story
+                </button>
+                <button
+                    onClick={handleSaveToCloud}
+                    className="main-view-button"
+                >
+                    Save to Cloud
                 </button>
             </div>
             <MultiWindowManager
