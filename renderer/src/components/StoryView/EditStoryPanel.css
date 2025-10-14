@@ -8,6 +8,57 @@
     margin-bottom: 20px;
 }
 
+.additional-info-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.additional-info-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.additional-info-item .key-input,
+.additional-info-item .value-input {
+    flex: 1;
+    padding: 6px 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.delete-additional-button {
+    background-color: #f44336;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-weight: bold;
+    line-height: 1;
+}
+
+.delete-additional-button:hover {
+    background-color: #d32f2f;
+}
+
+.add-additional-button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    padding: 6px 10px;
+    cursor: pointer;
+    align-self: flex-start;
+    font-size: 0.9em;
+}
+
+.add-additional-button:hover {
+    background-color: #43a047;
+}
+
 .form-group {
     margin-bottom: 15px;
 }

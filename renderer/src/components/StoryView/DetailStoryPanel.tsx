@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import { Story, Chapter } from '../../data/library';
 import { useLibrary } from '../../data/libraryContext';
 import AddChapterForm from './AddChapterForm'
+import api from '../../api/api'
 import './DetailStoryPanel.css';
 
 interface DetailStoryPanelProps {
@@ -76,6 +77,10 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
         setShowAddChapterForm(false);
     };
 
+    const handleCheckForUpdates = async () => {
+        console.log(await story.getUpdates());
+    }
+
     const allRead = story.chapters.every(chapter => chapter.read);
 
     return (
@@ -110,12 +115,18 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
                     </button>
                     {story.homepageURL && (
                         <button
-                            onClick={() => window.electronAPI.openExternal(story.homepageURL)}
+                            onClick={() => api.openExternal(story.homepageURL)}
                             className="action-button"
                         >
                             Homepage
                         </button>
                     )}
+                    <button
+                        onClick={handleCheckForUpdates}
+                        className="action-button"
+                    >
+                        Check For Updates
+                    </button>
                 </div>
             </div>
 

@@ -1,0 +1,17 @@
+All:
+Dark Mode
+
+
+Desktop Functionality:
+Actually pick a library
+Actually pick an image
+Mangadex check
+Auto-add Stories??????
+Edit/Add additional info
+re-order elements in the library
+
+
+
+Long Term Stuff:
+Make storage a little lighter on the size. (Maybe basic bitch JSON is not the greatest of ways to store stuff)
+

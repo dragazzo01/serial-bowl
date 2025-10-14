@@ -79,7 +79,7 @@ export interface StoryData {
     summary: string;
     homepageURL: string;
     checkForUpdates: boolean;
-    additionalInfo?: any;
+    additionalInfo: Record<string, string>;
     chapters: ChapterData[];
 }
 
@@ -90,7 +90,7 @@ export class Story {
     summary: string;
     homepageURL: string;
     checkForUpdates: boolean;
-    additionalInfo?: any;
+    additionalInfo: Record<string, string>;
     chapters: Chapter[];
 
     constructor(story_dict: StoryData) {
@@ -100,7 +100,7 @@ export class Story {
         this.summary = story_dict.summary;
         this.homepageURL = story_dict.homepageURL;
         this.checkForUpdates = story_dict.checkForUpdates;
-        this.additionalInfo = story_dict.additionalInfo;
+        this.additionalInfo = story_dict.additionalInfo || {};
         this.chapters = story_dict.chapters.map(chap => new Chapter(chap));
     }
 
@@ -111,6 +111,7 @@ export class Story {
             summary: "",
             homepageURL: "",
             checkForUpdates: false,
+            additionalInfo: {},
             chapters: [],
         });
     }
@@ -129,6 +130,7 @@ export class Story {
         if (edited_dict.homepageURL) this.homepageURL = edited_dict.homepageURL;
         if (edited_dict.checkForUpdates !== undefined) 
             this.checkForUpdates = edited_dict.checkForUpdates;
+        if (edited_dict.additionalInfo) this.additionalInfo = edited_dict.additionalInfo;
     }
 
     finished(): boolean {
@@ -163,6 +165,13 @@ export class Story {
         this.chapters.splice(position, 0, newChapter);
     }
 
+    async getUpdates(): Promise<Chapter[]> {
+        const storyData = this.serialize();
+        const response = await api.getUpdateHTML(storyData);
+        const chapData = await api.parseUpdateHTML(storyData, response);
+        return chapData.map(c => new Chapter(c));
+    }
+
     serialize(): StoryData {
         const result: StoryData = {
             title: this.title,
@@ -170,12 +179,10 @@ export class Story {
             homepageURL: this.homepageURL,
             summary: this.summary,
             checkForUpdates: this.checkForUpdates,
+            additionalInfo: this.additionalInfo,
             chapters: this.chapters.map(c => c.serialize())
         };
         
-        if (this.additionalInfo !== undefined) {
-            result.additionalInfo = this.additionalInfo;
-        }
         
         return result;
     }

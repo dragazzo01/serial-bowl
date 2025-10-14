@@ -2,14 +2,14 @@
 import React, { useEffect, useState } from 'react';
 import { Story, Chapter } from '../data/library';
 import { useLibrary } from '../data/libraryContext';
-import './MobileView.css'
+import './WebsiteView.css'
 import api from '../api/api'
 
 import StoryGrid from '../components/StoryGrid/StoryGrid'
 
 
 const MainView: React.FC = () => {
-    const { loadLibrary } = useLibrary();
+    const { library, loadLibrary } = useLibrary();
     const [isLoading, setIsLoading] = useState(true);
     const [stories, setStories] = useState<Story[]>([]);
 
@@ -47,9 +47,18 @@ const MainView: React.FC = () => {
         setStories([...stories]); // Trigger re-render
     };
 
+    const handleCheckForUpdatesClick = async () => {
+        
+    }
 
     return (
         <div className="main-view">
+            {/* <button
+                onClick={handleCheckForUpdatesClick}
+                className="main-view-button"
+            >
+                Check For Updates
+            </button> */}
             <StoryGrid
                 stories={stories}
                 onStoryClick={handleStoryClick}

@@ -1,9 +1,27 @@
+// Polyfill browser-like globals for undici (Node fetch)
+import { Blob } from "buffer";
+
+if (!(global as any).File) {
+  class File extends Blob {
+    name: string;
+    lastModified: number;
+
+    constructor(chunks: any[], name: string, options: any = {}) {
+      super(chunks, options);
+      this.name = name;
+      this.lastModified = options.lastModified || Date.now();
+    }
+  }
+  (global as any).File = File;
+}
+
 import { app, BrowserWindow, ipcMain, shell, protocol } from 'electron';
-import { checkStoryUpdate } from './tracker';
+import { getStoryUpdateHTML, parseStoryUpdateHTML } from './tracker';
 import { Story } from './lib';
 import path from 'path';
 import fs from 'fs/promises';
 import { exec } from "child_process";
+
 
 const isDev = !app.isPackaged; // true when running `npm run dev`
 
@@ -37,19 +55,19 @@ app.whenReady().then(() => {
       const relativePath = path.normalize(
         decodeURIComponent(request.url.replace('app-image:///', ''))
       );
-      
 
-      // Security check
-      //const actualPath = path.join(app.getPath('appData'), 'serial-bowl', 'images', relativePath);
       const actualPath = path.join(ASSETSDIR, 'images', relativePath);
 
-      // Read file and properly convert to Blob
       const buffer = await fs.readFile(actualPath);
-      const blob = new Blob([new Uint8Array(buffer)], {
-        type: getMimeType(actualPath)
-      });
 
-      return new Response(blob);
+      // Convert Buffer into Uint8Array
+      const uint8 = new Uint8Array(buffer);
+
+      return new Response(uint8, {
+        headers: {
+          "Content-Type": getMimeType(actualPath),
+        },
+      });
     } catch (error) {
       console.error(`Error loading image:`, error);
       return new Response(null, { status: 404 });
@@ -62,7 +80,7 @@ app.on('window-all-closed', () => {
 });
 
 const PUBLIC_PATH = path.join(__dirname, '../../public/');
-const DEFAULT_LIBRARY_PATH = path.join(PUBLIC_PATH, 'library.json');
+const DEV_LIBRARY_PATH = path.join(PUBLIC_PATH, 'library.json');
 const ASSETSDIR = "C:\\Users\\draga\\Documents\\serial-bowl-assets";
 const LIBRARY_PATH = path.join(ASSETSDIR, 'library.json');
 
@@ -72,8 +90,6 @@ async function initializeLibrary() {
   } catch (error) {
     if ((error as any).code === 'ENOENT') {
       console.error('Error initializing library:', error);
-      // Fallback to empty array
-      //await fs.writeFile(LIBRARY_PATH, JSON.stringify([], null, 2), 'utf-8');
     }
   }
 }
@@ -101,7 +117,7 @@ function getMimeType(filePath: string): string {
 // Handle loading the library
 ipcMain.handle('loadLibrary', async () => {
   try {
-    const data = await fs.readFile(/*isDev ? DEFAULT_LIBRARY_PATH :*/  LIBRARY_PATH, 'utf-8');
+    const data = await fs.readFile(isDev ? DEV_LIBRARY_PATH :  LIBRARY_PATH, 'utf-8');
     return JSON.parse(data);
   } catch (error) {
     console.error('Error loading library:', error);
@@ -113,9 +129,7 @@ ipcMain.handle('loadLibrary', async () => {
 ipcMain.handle('saveLibrary', async (_, data) => {
   try {
     if (!isDev) 
-      await fs.writeFile(LIBRARY_PATH, JSON.stringify(data, null, 2), 'utf-8');
-
-    console.log('would love to save to git rn')
+      await fs.writeFile(isDev ? DEV_LIBRARY_PATH : LIBRARY_PATH, JSON.stringify(data, null, 2), 'utf-8');
     return { success: true };
   } catch (error) {
     console.error('Error saving library:', error);
@@ -123,10 +137,16 @@ ipcMain.handle('saveLibrary', async (_, data) => {
   }
 });
 
-ipcMain.handle('checkUpdate', async (_, storydata) => {
+ipcMain.handle('getUpdateHTML', async (_, storydata) => {
     const story = new Story(storydata);
-    const newChapters = await checkStoryUpdate(story);
-    return newChapters.map(chapter => chapter.serialize());
+    const response = getStoryUpdateHTML(story);
+    return response
+});
+
+ipcMain.handle('parseUpdateHTML', async (_, storydata, response) => {
+  const story = new Story(storydata);
+  const newChapters = await parseStoryUpdateHTML(story, response);
+  return newChapters.map(chapter => chapter.serialize());
 });
 
 // Add this IPC handler in main.ts (place it with the other handlers)
@@ -148,7 +168,8 @@ function runGitCommand(command: string): Promise<string> {
   });
 }
 
-ipcMain.handle("saveToCloud", async (_) => {
+ipcMain.handle("saveToCloud", async (_data) => {
+  if (isDev) return { success: true, message: "Did not actually save as this is Dev Mode"}
   try {
     await runGitCommand("git add .");
     await runGitCommand(`git commit -m "desktop saved"`);

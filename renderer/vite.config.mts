@@ -33,11 +33,18 @@ export default defineConfig({
     rollupOptions: {
       input: {
         electron: path.resolve(__dirname, "index.html"), // for desktop
-        pwa: path.resolve(__dirname, "index-pwa.html"),        // for mobile/PWA
+        pwa: path.resolve(__dirname, "index.html"),        // for mobile/PWA
       },
     },
   },
   server: {
-    port: 5173
-  }
+    port: 5173,
+    proxy: {
+      "/api": {
+        target: "http://localhost:8888",
+        changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/api/, "/.netlify/functions"),
+      },
+    },
+  },
 })

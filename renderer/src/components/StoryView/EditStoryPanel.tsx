@@ -25,6 +25,9 @@ const EditStoryPanel: React.FC<EditStoryPanelProps> = ({
         summary: story?.summary || '',
         homepageURL: story?.homepageURL || '',
         checkForUpdates: story?.checkForUpdates || false,
+        additionalInfo: story?.additionalInfo
+        ? Object.entries(story.additionalInfo).map(([key, value]) => ({ key, value: String(value ?? '') }))
+        : [],
     });
 
     const {
@@ -50,6 +53,28 @@ const EditStoryPanel: React.FC<EditStoryPanelProps> = ({
             [name]: checked
         }));
     };
+    
+    const handleAdditionalInfoChange = (index: number, field: 'key' | 'value', newValue: string) => {
+        setEditedStory(prev => {
+            const updated = [...prev.additionalInfo];
+            updated[index] = { ...updated[index], [field]: newValue };
+            return { ...prev, additionalInfo: updated };
+        });
+    };
+
+    const handleAddAdditionalInfo = () => {
+        setEditedStory(prev => ({
+            ...prev,
+            additionalInfo: [...prev.additionalInfo, { key: '', value: '' }]
+        }));
+    };
+
+    const handleDeleteAdditionalInfo = (index: number) => {
+        setEditedStory(prev => {
+            const updated = prev.additionalInfo.filter((_, i) => i !== index);
+            return { ...prev, additionalInfo: updated };
+        });
+    };
 
     const handleSave = () => {
         // Validate required fields
@@ -69,20 +94,22 @@ const EditStoryPanel: React.FC<EditStoryPanelProps> = ({
         askConfirmation(
             `Are you sure you want to ${action} "${editedStory.title || title}"?`,
             () => {
+                const fixedStory = {
+                    ...editedStory, 
+                    additionalInfo: Object.fromEntries(
+                        editedStory.additionalInfo
+                            .filter(pair => pair.key.trim() !== '') // skip empty keys
+                            .map(pair => [pair.key, pair.value])     // [key, value] tuples
+                    )
+                }
                 if (story) {
-                    story.editStory({
-                        ...editedStory,
-                        coverImage: editedStory.coverImage,
-                        homepageURL: editedStory.homepageURL,
-                    });
+                    story.editStory(fixedStory);
                     onSave(story);
                 } else {
                     const newStory = Story.empty()
-                    newStory.editStory(editedStory)
+                    newStory.editStory(fixedStory)
                     onSave(newStory);
-                }
-                // If story is null, the parent component should handle the creation
-                
+                }                
             },
             story ? 'Save' : 'Create',
             'Cancel'
@@ -159,6 +186,44 @@ const EditStoryPanel: React.FC<EditStoryPanelProps> = ({
                     />
                     Check for Updates
                 </label>
+            </div>
+
+            <div className="form-group">
+                <label>Additional Info:</label>
+                <div className="additional-info-list">
+                    {editedStory.additionalInfo.map((pair, index) => (
+                        <div key={index} className="additional-info-item">
+                            <input
+                                type="text"
+                                placeholder="Key"
+                                value={pair.key}
+                                onChange={(e) => handleAdditionalInfoChange(index, 'key', e.target.value)}
+                                className="key-input"
+                            />
+                            <input
+                                type="text"
+                                placeholder="Value"
+                                value={pair.value}
+                                onChange={(e) => handleAdditionalInfoChange(index, 'value', e.target.value)}
+                                className="value-input"
+                            />
+                            <button
+                                type="button"
+                                className="delete-additional-button"
+                                onClick={() => handleDeleteAdditionalInfo(index)}
+                            >
+                                ✕
+                            </button>
+                        </div>
+                    ))}
+                    <button
+                        type="button"
+                        onClick={handleAddAdditionalInfo}
+                        className="add-additional-button"
+                    >
+                        + Add Field
+                    </button>
+                </div>
             </div>
 
             <div className="button-group">

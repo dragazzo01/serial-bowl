@@ -42,8 +42,7 @@ const UpdateChecker: React.FC<UpdateCheckerProps> = ({ stories, onFinish, onCanc
             }
 
             try {
-                const newChaptersData = await api.checkStoryUpdate(story.serialize());
-                const newChapters = newChaptersData.map((c) => new Chapter(c));
+                const newChapters = await story.getUpdates();
 
 
                 if (newChapters.length > 0) {

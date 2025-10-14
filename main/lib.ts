@@ -1,3 +1,5 @@
+import fs from 'fs/promises';
+
 function getDate(): string {
     return new Date().toLocaleDateString('en-US');
 }
@@ -77,7 +79,7 @@ export interface StoryData {
     summary: string;
     homepageURL: string;
     checkForUpdates: boolean;
-    additionalInfo?: any;
+    additionalInfo: Record<string, string>;
     chapters: ChapterData[];
 }
 
@@ -88,7 +90,7 @@ export class Story {
     summary: string;
     homepageURL: string;
     checkForUpdates: boolean;
-    additionalInfo?: any;
+    additionalInfo: Record<string, string>;
     chapters: Chapter[];
 
     constructor(story_dict: StoryData) {
@@ -98,7 +100,7 @@ export class Story {
         this.summary = story_dict.summary;
         this.homepageURL = story_dict.homepageURL;
         this.checkForUpdates = story_dict.checkForUpdates;
-        this.additionalInfo = story_dict.additionalInfo;
+        this.additionalInfo = story_dict.additionalInfo || {};
         this.chapters = story_dict.chapters.map(chap => new Chapter(chap));
     }
 
@@ -109,12 +111,13 @@ export class Story {
             summary: "",
             homepageURL: "",
             checkForUpdates: false,
+            additionalInfo: {},
             chapters: [],
         });
     }
 
     async setCover() {
-        //this.coverPath = await api.getImageUrl(this.coverRelativePath);
+        this.coverPath = this.coverRelativePath;
     }
 
     editStory(edited_dict: Partial<StoryData>): void {
@@ -127,6 +130,7 @@ export class Story {
         if (edited_dict.homepageURL) this.homepageURL = edited_dict.homepageURL;
         if (edited_dict.checkForUpdates !== undefined)
             this.checkForUpdates = edited_dict.checkForUpdates;
+        if (edited_dict.additionalInfo) this.additionalInfo = edited_dict.additionalInfo;
     }
 
     finished(): boolean {
@@ -161,6 +165,13 @@ export class Story {
         this.chapters.splice(position, 0, newChapter);
     }
 
+    // async getUpdates(): Promise<Chapter[]> {
+    //     const storyData = this.serialize();
+    //     const response = await api.getUpdateHTML(storyData);
+    //     const chapData = await api.parseUpdateHTML(storyData, response);
+    //     return chapData.map(c => new Chapter(c));
+    // }
+
     serialize(): StoryData {
         const result: StoryData = {
             title: this.title,
@@ -168,12 +179,10 @@ export class Story {
             homepageURL: this.homepageURL,
             summary: this.summary,
             checkForUpdates: this.checkForUpdates,
+            additionalInfo: this.additionalInfo,
             chapters: this.chapters.map(c => c.serialize())
         };
 
-        if (this.additionalInfo !== undefined) {
-            result.additionalInfo = this.additionalInfo;
-        }
 
         return result;
     }
@@ -185,29 +194,27 @@ export class Library {
     constructor() {
         this.stories = []
     }
-    // // Alternative better approach: use a static async factory method
-    // static async create(): Promise<Library> {
-    //     let jsonList: StoryData[];
+    // Alternative better approach: use a static async factory method
+    static async create(): Promise<Library> {
+        let jsonList: StoryData[];
 
-    //     try {
-    //         jsonList = await api.loadLibrary();
-    //     } catch (error) {
-    //         if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-    //             jsonList = [];
-    //         } else {
-    //             throw error;
-    //         }
-    //     }
-    //     const library = new Library();
-    //     library.stories = jsonList.map(story => new Story(story));
-    //     library.stories.forEach(story => story.setCover())
-    //     return library;
-    // }
+       try {
+           const data = await fs.readFile("../example.json", 'utf-8');
+           jsonList =  JSON.parse(data);
+         } catch (error) {
+           console.error('Error loading library:', error);
+           jsonList = [];
+         }
 
-    // async saveLibrary(): Promise<void> {
-    //     await api.saveLibrary(this.stories.map(s => s.serialize()));
-    //     console.log(`Saved Successfully`);
-    // }
+         const lib = new Library();
+         lib.stories = jsonList.map(s => new Story(s));
+         return lib;
+
+    }
+
+    async saveLibrary(): Promise<void> {
+        await fs.writeFile("../example.json", JSON.stringify(this.serialize(), null, 2), 'utf-8');
+    }
 
     getStory(title: string): Story | undefined {
         return this.stories.find(s => s.title === title);
@@ -222,27 +229,6 @@ export class Library {
 
     addStory(story: Story): void {
         this.stories.push(story);
-    }
-
-    grid(): Story[] {
-        const gridOrder: Story[] = [];
-        let yellowInsert = 0;
-
-        for (const story of this.stories) {
-            if (story.finished()) {
-                // Finished stories at back
-                gridOrder.push(story);
-            } else if (story.checkForUpdates) {
-                // Stories checking for updates at front
-                gridOrder.unshift(story);
-                yellowInsert++;
-            } else {
-                // Other stories in middle
-                gridOrder.splice(yellowInsert, 0, story);
-            }
-        }
-
-        return gridOrder;
     }
 
     serialize(): StoryData[] {

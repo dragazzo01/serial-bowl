@@ -14,22 +14,24 @@
     "build:main": "tsc -p main/tsconfig.json",
     "watch:main": "tsc -w -p main/tsconfig.json",
     "clean": "rimraf dist release",
+    "serve": "cd renderer && npm run serve",
+    "netlify": "netlify dev",
     "prod": "npm run clean && npm run build && npx electron-builder --win --dir",
-    "start": "electron .",
     "test": "cd main && tsc -p tsconfig.json && npx ts-node test.ts"
   },
   "dependencies": {
-    "jsdom": "^26.1.0",
+    "cheerio": "^1.1.2",
     "puppeteer": "^24.16.2"
   },
   "devDependencies": {
-    "@types/jsdom": "^21.1.7",
+    "@netlify/blobs": "^10.0.8",
+    "@netlify/functions": "^4.2.2",
+    "@types/cheerio": "^0.22.35",
     "@types/node": "^20.0.0",
     "@types/react": "^19.1.10",
     "concurrently": "^8.2.2",
     "electron": "^28.0.0",
     "electron-builder": "^26.0.12",
-
     "typescript": "^5.0.0",
     "wait-on": "^7.0.1"
   },

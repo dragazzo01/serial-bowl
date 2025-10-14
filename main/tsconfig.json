@@ -1,5 +1,5 @@
 {
-    "extends": "../tsconfig.json",
+  "extends": "../tsconfig.json",
   "compilerOptions": {
     "target": "ESNext",
     "module": "commonjs",
@@ -12,13 +12,7 @@
     "moduleResolution": "node",
     "sourceMap": true,
     "baseUrl": ".",
-    "paths": {
-      "@library": [
-        "./library.ts"
-      ]
-    }
-
   },
-  "include": ["./**/*.ts", "./library.json"],
-  "exclude": ["node_modules"]
+  "include": ["./**/*.ts"],
+  "exclude": ["node_modules", "../renderer"]
 }
