@@ -52,16 +52,11 @@ const DeleteStory: React.FC<DeleteStoryProps> = ({ stories, onDelete }) => {
                                     <h3>{story.title}</h3>
                                     {story.coverPath && (
                                         <img
-                                            src={`/images/${story.coverPath}`}
+                                            src={story.coverPath}
                                             alt={`Cover for ${story.title}`}
                                             className="story-cover"
                                         />
                                     )}
-                                    <div className="story-stats">
-                                        <div> Chapters: {story.chapters.length} </div>
-                                        <div> Read: {story.chapters.filter(c => c.read).length} </div>
-                                        <div> {story.finished() ? ' Finished' : ' In Progress'} </div>
-                                    </div>
                                 </div>
                                 <button
                                     onClick={() => handleDelete(story)}

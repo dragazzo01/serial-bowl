@@ -80,7 +80,7 @@ app.on('window-all-closed', () => {
 });
 
 const PUBLIC_PATH = path.join(__dirname, '../../public/');
-const DEV_LIBRARY_PATH = path.join(PUBLIC_PATH, 'library.json');
+const DEV_LIBRARY_PATH = path.join(__dirname, '../../example.json');
 const ASSETSDIR = "C:\\Users\\draga\\Documents\\serial-bowl-assets";
 const LIBRARY_PATH = path.join(ASSETSDIR, 'library.json');
 

@@ -17,7 +17,7 @@ export async function getStoryUpdateHTML(story: Story): Promise<string> {
     } else if (story.homepageURL.includes("genesistudio.com")) {
         return baseRequest(story.additionalInfo.chaptersLink);
     } else if (story.homepageURL.includes("mangadex.org")) {
-        return baseRequest(`https://api.mangadex.org/chapter?manga=${story.additionalInfo.mangaID}&translatedLanguage[]=en&order[chapter]=desc&limit=100`);
+        return baseRequest(`https://api.mangadex.org/chapter?manga=${story.additionalInfo.mangaID}&translatedLanguage[]=en&order[chapter]=desc&limit=30`);
     } else {
         throw new Error("No scrapper assigned to this story");
     }
@@ -41,7 +41,7 @@ async function puppeteerRequest(url: string): Promise<string> {
     return response;
 }
 const defaultUA =
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
 
 async function baseRequest(url: string, userAgent: string = defaultUA): Promise<string> {
     const response = await fetch(url, {
@@ -54,7 +54,7 @@ async function baseRequest(url: string, userAgent: string = defaultUA): Promise<
     });
 
     if (!response.ok) {
-        throw new Error(`Failed to fetch page. Status code: ${response.status}`);
+        throw new Error(`Failed to fetch page. Status code: ${response.status}\nResponse:\n${response.text}`);
     }
 
     return await response.text();
@@ -276,11 +276,8 @@ async function parseGenesis(story: Story, response: string): Promise<Chapter[]> 
         const ch = chapters[i];
         
         if (!ch.isPaid) {
-            //console.log(`Title: ${title}, Link: ${link}`);
-            
             const title = `Ch. ${ch.chapter_number}: ${ch.chapter_title}`
             const url = "https://genesistudio.com/viewer/" + ch.id;
-            console.log(`title: ${title}`);
             if (title === latestChapter) break;
 
             newChapters.push(Chapter.new(title, url));

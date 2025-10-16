@@ -1,0 +1,4 @@
+.side-window {
+    background: var(--color-bg);
+    border-left: 1px solid var(--color-bg-3);
+}

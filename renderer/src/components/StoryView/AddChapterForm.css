@@ -1,0 +1,86 @@
+/* Add Chapter Form Styles */
+.add-chapter-form {
+    background-color: var(--color-bg);
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+.add-chapter-form h3 {
+    margin-top: 0;
+    color: var(--color-text);
+}
+
+.add-chapter-form .form-group {
+    margin-bottom: 10px;
+}
+
+.add-chapter-form .form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.add-chapter-form .form-group input[type="text"],
+.add-chapter-form .form-group input[type="url"],
+.add-chapter-form .form-group input[type="date"],
+.add-chapter-form .form-group input[type="number"] {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--color-neutral-border);
+    border-radius: 4px;
+    box-sizing: border-box;
+    background-color: var(--color-bg-3);
+    color: var(--color-text);
+}
+
+.add-chapter-form .position-options {
+    display: flex;
+    gap: 15px;
+    align-items: center;
+}
+
+.add-chapter-form .position-options label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-weight: normal;
+}
+
+.add-chapter-form .custom-position-input {
+    width: 60px !important;
+    margin-left: 5px;
+}
+
+.add-chapter-form .form-buttons {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+    margin-top: 15px;
+}
+
+.add-chapter-form .cancel-button {
+    background-color: var(--color-neutral);
+    color: var(--color-text);
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.add-chapter-form .cancel-button:hover {
+    background-color: var(--color-neutral-hover);
+}
+
+.add-chapter-form .save-button {
+    background-color: var(--color-confirm);
+    color: var(--color-text-4);
+    padding: 8px 16px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.add-chapter-form .save-button:hover {
+    background-color: var(--color-confirm-hover);
+}

@@ -37,7 +37,7 @@ const electronAPI: AppAPI = {
     isElectron: true,
 };
 const defaultUA =
-    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36";
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/141.0.0.0 Safari/537.36";
 
 async function baseRequest(url: string, userAgent: string = defaultUA): Promise<string> {
     const response = await fetch(url, {
@@ -75,11 +75,25 @@ const browserAPI: AppAPI = {
     },
 
     getUpdateHTML: async (story: StoryData) => {
-        throw new Error("Can not do this without Electron");
+        if(story.homepageURL.includes("frieren.online")) {
+            return baseRequest(story.homepageURL);
+        } else if(story.homepageURL.includes("demonicscans.org")) {
+            return baseRequest(story.homepageURL);
+        } else if (story.homepageURL.includes("lightnovelworld.org")) {
+            return baseRequest(story.additionalInfo.chaptersLink);
+        } else if (story.homepageURL.includes("royalroad.com")) {
+            return baseRequest(story.homepageURL);
+        } else if (story.homepageURL.includes("genesistudio.com")) {
+            return baseRequest(story.additionalInfo.chaptersLink);
+        } else if (story.homepageURL.includes("mangadex.org")) {
+            return baseRequest(`https://api.mangadex.org/chapter?manga=${story.additionalInfo.mangaID}&translatedLanguage[]=en&order[chapter]=desc&limit=30`);
+        } else {
+            throw new Error("No scrapper assigned to this story");
+        }
     },
 
     parseUpdateHTML: async (story: StoryData, response: string) => {
-        throw new Error("Can not do this without Electron");
+        throw new Error("Got passed the response!!");
     },
 
     openExternal: (url: string) => {

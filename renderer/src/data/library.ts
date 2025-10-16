@@ -79,6 +79,7 @@ export interface StoryData {
     summary: string;
     homepageURL: string;
     checkForUpdates: boolean;
+    status: 'reading' | 'complete' | 'broken' | 'hidden' | 'hiatus' | 'dropped';
     additionalInfo: Record<string, string>;
     chapters: ChapterData[];
 }
@@ -90,16 +91,18 @@ export class Story {
     summary: string;
     homepageURL: string;
     checkForUpdates: boolean;
+    status: 'reading' | 'complete' | 'broken' | 'hidden' | 'hiatus' | 'dropped';
     additionalInfo: Record<string, string>;
     chapters: Chapter[];
 
     constructor(story_dict: StoryData) {
         this.title = story_dict.title;
         this.coverRelativePath = story_dict.coverImage;
-        this.coverPath = story_dict.coverImage;
+        this.coverPath = '';
         this.summary = story_dict.summary;
         this.homepageURL = story_dict.homepageURL;
         this.checkForUpdates = story_dict.checkForUpdates;
+        this.status = story_dict.status;
         this.additionalInfo = story_dict.additionalInfo || {};
         this.chapters = story_dict.chapters.map(chap => new Chapter(chap));
     }
@@ -111,13 +114,19 @@ export class Story {
             summary: "",
             homepageURL: "",
             checkForUpdates: false,
+            status: 'reading',
             additionalInfo: {},
             chapters: [],
         });
     }
 
     async setCover() {
-        this.coverPath = await api.getImageUrl(this.coverRelativePath);
+        
+        if (this.coverRelativePath.includes("https://")) {
+            this.coverPath = this.coverRelativePath;
+        } else {
+            this.coverPath = await api.getImageUrl(this.coverRelativePath);
+        }
     }
 
     editStory(edited_dict: Partial<StoryData>): void {
@@ -131,6 +140,7 @@ export class Story {
         if (edited_dict.checkForUpdates !== undefined) 
             this.checkForUpdates = edited_dict.checkForUpdates;
         if (edited_dict.additionalInfo) this.additionalInfo = edited_dict.additionalInfo;
+        if (edited_dict.status) this.status = edited_dict.status;
     }
 
     finished(): boolean {
@@ -179,6 +189,7 @@ export class Story {
             homepageURL: this.homepageURL,
             summary: this.summary,
             checkForUpdates: this.checkForUpdates,
+            status: this.status,
             additionalInfo: this.additionalInfo,
             chapters: this.chapters.map(c => c.serialize())
         };

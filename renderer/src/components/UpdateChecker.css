@@ -1,10 +1,11 @@
 .update-panel {
     padding: 1rem;
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-neutral-border);
     border-radius: 12px;
-    background: #fafafa;
+    background: var(--color-bg-2);
     max-width: 600px;
     margin: auto;
+    color: var(--color-text)
 }
 
 .update-panel h3 {
@@ -29,19 +30,19 @@ progress {
 }
 
 .result {
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-neutral-border);
     border-radius: 8px;
     padding: 0.5rem;
     margin-bottom: 0.5rem;
 }
 
 .result.success strong {
-    color: green;
+    color: var(--color-confirm);
 }
 
 .result.error strong,
 .result.error p {
-    color: red;
+    color: var(--color-delete);
 }
 
 .update-buttons {
@@ -52,19 +53,27 @@ progress {
 
 
 .save-updates {
-    background: green;
-    color: white;
+    background: var(--color-confirm);
+    color: var(--color-text-4);
     padding: 0.5rem 1rem;
     border-radius: 8px;
     border: none;
     cursor: pointer;
 }
 
+.save-updates:hover {
+    background: var(--color-confirm-hover);
+}
+
 .cancel-updates {
-    background: #bbb;
-    color: black;
+    background: var(--color-neutral);
+    color: var(--color-text);
     padding: 0.5rem 1rem;
     border-radius: 8px;
-    border: none;
+    border: 1px solid var(--color-neutral-border);
     cursor: pointer;
+}
+
+.cancel-updates:hover {
+    background: var(--color-neutral-hover);
 }

@@ -25,13 +25,13 @@
 .additional-info-item .value-input {
     flex: 1;
     padding: 6px 8px;
-    border: 1px solid #ccc;
+    border: 1px solid var(--color-neutral-border);
     border-radius: 4px;
 }
 
-.delete-additional-button {
-    background-color: #f44336;
-    color: white;
+.edit-story-panel .delete-additional-button {
+    background-color: var(--color-delete);
+    color: var(--color-text-4);
     border: none;
     border-radius: 4px;
     padding: 4px 8px;
@@ -40,13 +40,13 @@
     line-height: 1;
 }
 
-.delete-additional-button:hover {
-    background-color: #d32f2f;
+.edit-story-panel .delete-additional-button:hover {
+    background-color: var(--color-delete-hover);
 }
 
-.add-additional-button {
-    background-color: #4CAF50;
-    color: white;
+.edit-story-panel .add-additional-button {
+    background-color: var(--color-confirm);
+    color: var(--color-text-4);
     border: none;
     border-radius: 4px;
     padding: 6px 10px;
@@ -55,73 +55,94 @@
     font-size: 0.9em;
 }
 
-.add-additional-button:hover {
-    background-color: #43a047;
+.edit-story-panel .add-additional-button:hover {
+    background-color: var(--color-confirm-hover);
 }
 
-.form-group {
+.edit-story-panel .form-group {
     margin-bottom: 15px;
 }
 
-.form-group label {
+.edit-story-panel .form-group label {
     display: block;
     margin-bottom: 5px;
     font-weight: bold;
+    
 }
 
-.form-group input[type="text"],
-.form-group textarea {
+.edit-story-panel .form-group input[type="text"],
+.edit-story-panel .form-group textarea {
     width: 100%;
     padding: 8px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-neutral-border);
     border-radius: 4px;
+    color: var(--color-text);
+    background-color: var(--color-bg-3);
 }
 
-.form-group.checkbox {
+.edit-story-panel .form-group.checkbox {
     display: flex;
     align-items: center;
 }
 
-.form-group.checkbox label {
+.edit-story-panel .form-group.checkbox label {
     display: flex;
     align-items: center;
     font-weight: normal;
     margin-bottom: 0;
 }
 
-.form-group.checkbox input {
+.edit-story-panel .form-group.checkbox input {
     margin-right: 8px;
 }
 
-.button-group {
+.edit-story-panel .button-group {
     display: flex;
     gap: 10px;
     margin-top: 20px;
 }
 
-.save-button {
-    background-color: #4CAF50;
-    color: white;
+.edit-story-panel .save-button {
+    background-color: var(--color-confirm);
+    color: var(--color-text-4);
     padding: 8px 16px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
 }
 
-.cancel-button {
-    background-color: #f0f0f0;
-    padding: 8px 16px;
-    border: 1px solid #ddd;
-    border-radius: 4px;
-    cursor: pointer;
+.edit-story-panel .save-button:hover {
+    background-color: var(--color-confirm-hover);
 }
 
-.delete-button {
-    background-color: #f44336;
-    color: white;
+.edit-story-panel .cancel-button {
+    background-color: var(--color-neutral);
+    padding: 8px 16px;
+    border: 1px solid var(--color-neutral-border);
+    border-radius: 4px;
+    cursor: pointer;
+    color: var(--color-text)
+}
+
+.edit-story-panel .cancel-button:hover {
+    background-color: var(--color-neutral-hover);
+}
+
+.edit-story-panel .delete-button {
+    background-color: var(--color-delete);
+    color: var(--color-text-4);
     padding: 8px 16px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
     margin-left: auto;
+}
+
+.form-group select {
+    width: 100%;
+    padding: 8px;
+    border: 1px solid var(--color-neutral-border);
+    border-radius: 4px;
+    color: var(--color-text);
+    background-color: var(--color-bg-3);
 }

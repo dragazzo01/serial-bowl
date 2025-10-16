@@ -111,7 +111,7 @@ const MainView: React.FC = () => {
         askConfirmation(
             `Are you sure you want to save to cloud?`,
             async () => {
-                await api.saveToCloud()
+                await api.saveToCloud([])
                 // if (success) {
                 //     console.log('it worked!!!')
                 // } else {

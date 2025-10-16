@@ -80,6 +80,7 @@ export interface StoryData {
     homepageURL: string;
     checkForUpdates: boolean;
     additionalInfo: Record<string, string>;
+    status: 'reading' | 'complete' | 'broken' | 'hidden' | 'hiatus' | 'dropped';
     chapters: ChapterData[];
 }
 
@@ -91,6 +92,7 @@ export class Story {
     homepageURL: string;
     checkForUpdates: boolean;
     additionalInfo: Record<string, string>;
+    status: 'reading' | 'complete' | 'broken' | 'hidden' | 'hiatus' | 'dropped';
     chapters: Chapter[];
 
     constructor(story_dict: StoryData) {
@@ -101,6 +103,7 @@ export class Story {
         this.homepageURL = story_dict.homepageURL;
         this.checkForUpdates = story_dict.checkForUpdates;
         this.additionalInfo = story_dict.additionalInfo || {};
+        this.status = story_dict.status;
         this.chapters = story_dict.chapters.map(chap => new Chapter(chap));
     }
 
@@ -112,6 +115,7 @@ export class Story {
             homepageURL: "",
             checkForUpdates: false,
             additionalInfo: {},
+            status: 'reading',
             chapters: [],
         });
     }
@@ -180,6 +184,7 @@ export class Story {
             summary: this.summary,
             checkForUpdates: this.checkForUpdates,
             additionalInfo: this.additionalInfo,
+            status: this.status,
             chapters: this.chapters.map(c => c.serialize())
         };
 
@@ -195,11 +200,11 @@ export class Library {
         this.stories = []
     }
     // Alternative better approach: use a static async factory method
-    static async create(): Promise<Library> {
+    static async create(path: string): Promise<Library> {
         let jsonList: StoryData[];
 
        try {
-           const data = await fs.readFile("../example.json", 'utf-8');
+           const data = await fs.readFile(path, 'utf-8');
            jsonList =  JSON.parse(data);
          } catch (error) {
            console.error('Error loading library:', error);
@@ -212,8 +217,8 @@ export class Library {
 
     }
 
-    async saveLibrary(): Promise<void> {
-        await fs.writeFile("../example.json", JSON.stringify(this.serialize(), null, 2), 'utf-8');
+    async saveLibrary(path: string): Promise<void> {
+        await fs.writeFile(path, JSON.stringify(this.serialize(), null, 2), 'utf-8');
     }
 
     getStory(title: string): Story | undefined {

@@ -1,6 +1,7 @@
 // renderer/src/components/AddChapterForm.tsx
 import React, { useState } from 'react';
 import { Chapter } from '../../data/library';
+import './AddChapterForm.css';
 
 interface AddChapterFormProps {
     onSave: (chapter: Chapter, position: number) => void;
@@ -37,7 +38,7 @@ const AddChapterForm: React.FC<AddChapterFormProps> = ({ onSave, onCancel, total
             <h3>Add New Chapter</h3>
             <form onSubmit={handleSubmit}>
                 <div className="form-group">
-                    <label>Chapter Title*:</label>
+                    <label>Chapter Title:</label>
                     <input
                         type="text"
                         value={title}

@@ -50,7 +50,7 @@ const StoryGridElem: React.FC<StoryGridElemProps> = ({
                     <img
                         src={`${story.coverPath}`}
                         alt={story.title}
-                        className="cover-image"
+                        className="cover-image-grid"
                         onError={(e) => {
                             (e.target as HTMLImageElement).style.display = 'none';
                         }}

@@ -3,6 +3,7 @@ import { LibraryProvider } from './data/libraryContext';
 import MainView from './components/MainView';
 import WebsiteView from './pwa-content/WebsiteView'
 import api from './api/api'
+import './style/theme.css';
 
 
 
@@ -18,7 +19,7 @@ function App() {
     console.log("in website");
     return (
       <LibraryProvider>
-        <WebsiteView />
+        <MainView />
       </LibraryProvider>
     )
   }

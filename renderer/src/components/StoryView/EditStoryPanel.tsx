@@ -25,6 +25,7 @@ const EditStoryPanel: React.FC<EditStoryPanelProps> = ({
         summary: story?.summary || '',
         homepageURL: story?.homepageURL || '',
         checkForUpdates: story?.checkForUpdates || false,
+        status: story?.status || 'reading',
         additionalInfo: story?.additionalInfo
         ? Object.entries(story.additionalInfo).map(([key, value]) => ({ key, value: String(value ?? '') }))
         : [],
@@ -186,6 +187,29 @@ const EditStoryPanel: React.FC<EditStoryPanelProps> = ({
                     />
                     Check for Updates
                 </label>
+            </div>
+
+            <div className="form-group">
+                <label>Status:</label>
+                <select
+                    name="status"
+                    value={editedStory.status}
+                    onChange={(e) => {
+                        console.log(e.target.value);
+                        setEditedStory(prev => ({
+                            ...prev,
+                            status: e.target.value as 'reading' | 'complete' | 'broken' | 'hidden' | 'hiatus' | 'dropped'
+                            
+                        }))}
+                    }
+                >
+                    <option value="reading">Reading</option>
+                    <option value="complete">Complete</option>
+                    <option value="broken">Broken</option>
+                    <option value="hidden">Hidden</option>
+                    <option value="hiatus">Hiatus</option>
+                    <option value="dropped">Dropped</option>
+                </select>
             </div>
 
             <div className="form-group">

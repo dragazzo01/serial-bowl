@@ -1,0 +1,103 @@
+/* theme.css */
+:root {
+    /* Light mode colors */
+    --color-bg: #ffffff;
+    --color-bg-2: #f9f9f9;
+    --color-bg-3: #f5f5f5;
+    --color-text: #222222;
+    --color-text-2: #666666;
+    --color-text-3: #888888;
+    --color-text-4: #ffffff;
+    --color-text-link: #0020ff;
+    --color-border: #dddddd;
+    --color-border-light: #eeeeee;
+
+    /* Action colors */
+    --color-confirm: #4CAF50;
+    --color-confirm-hover: #388E3C;
+    --color-delete: #fc3737;
+    --color-delete-hover: #cc0000;
+    --color-delete-border: #ff0000;
+    --color-neutral: #f8f8f8;
+    --color-neutral-hover: #cacaca;
+    --color-neutral-border: #ddd;
+    --color-save: #4862d7;
+    --color-save-hover: #384daa;
+
+
+    /* Interactive states */
+    --color-hover: #e8e8e8;
+    --color-active: #e0e0e0;
+
+    /* StoryGrid states */
+    --color-read: var(--color-confirm);
+    --color-read-hover: var(--color-confirm-hover);
+    --color-read-disable: #bdbdbd;
+    --color-grid-fu-bg: #e0e0e0;
+    --color-grid-fu-border: #4CAF50;
+    --color-grid-fn-bg: #f5f5f5;
+    --color-grid-fn-border: #9e9e9e;
+    --color-grid-uu-bg: #ffe1e1;
+    --color-grid-uu-border: #ff0707;
+    --color-grid-un-bg: #e3f2fd;
+    --color-grid-un-border: #2196f3;
+
+    /* Shadows */
+    --shadow-small: 0 2px 4px rgba(0, 0, 0, 0.1);
+    --shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.1);
+
+
+    background: var(--color-bg);
+    color: var(--color-text)
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    :root {
+        /* Dark mode colors */
+        --color-bg: #121212;
+        --color-bg-2: #1e1e1e;
+        --color-bg-3: #2d2d2d;
+        --color-text: #e0e0e0;
+        --color-text-2: #a0a0a0;
+        --color-text-3: #888888;
+        --color-text-4: #ffffff;
+        /* Inverted for dark backgrounds */
+        --color-text-link: #64a0ff;
+        --color-border: #444444;
+        --color-border-light: #333333;
+
+        /* Action colors - adjusted for better contrast in dark mode */
+        --color-confirm: #4CAF50;
+        --color-confirm-hover: #66bb6a;
+        --color-delete: #ff5252;
+        --color-delete-hover: #ff6b6b;
+        --color-delete-border: #ff5252;
+        --color-neutral: #2d2d2d;
+        --color-neutral-hover: #3d3d3d;
+        --color-neutral-border: #444444;
+        --color-save: #5c6bc0;
+        --color-save-hover: #7986cb;
+
+        /* Interactive states */
+        --color-hover: #2a2a2a;
+        --color-active: #363636;
+
+        /* StoryGrid states */
+        --color-read: var(--color-confirm);
+        --color-read-hover: var(--color-confirm-hover);
+        --color-read-disable: #555555;
+        --color-grid-fu-bg: #3d3d3d;
+        --color-grid-fu-border: #4CAF50;
+        --color-grid-fn-bg: #2d2d2d;
+        --color-grid-fn-border: #666666;
+        --color-grid-uu-bg: #4b3a3a;
+        --color-grid-uu-border: #ff5252;
+        --color-grid-un-bg: #374148;
+        --color-grid-un-border: #42a5f5;
+
+        /* Shadows - adjusted for dark mode */
+        --shadow-small: 0 2px 4px rgba(0, 0, 0, 0.3);
+        --shadow-medium: 0 4px 8px rgba(0, 0, 0, 0.3);
+    }
+}

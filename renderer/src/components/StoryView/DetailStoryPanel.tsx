@@ -5,6 +5,8 @@ import { useLibrary } from '../../data/libraryContext';
 import AddChapterForm from './AddChapterForm'
 import api from '../../api/api'
 import './DetailStoryPanel.css';
+import useConfirmation from '../../hooks/useConfirmation'
+import ConfirmationDialogue from '../ConfirmationDialogue';
 
 interface DetailStoryPanelProps {
     story: Story;
@@ -22,6 +24,13 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
     const [deleteMode, setDeleteMode] = useState(false); 
     const [showAddChapterForm, setShowAddChapterForm] = useState(false);
     const { updateLibrary } = useLibrary();
+    const {
+        isOpen,
+        askConfirmation,
+        handleConfirm,
+        handleCancel,
+        config,
+    } = useConfirmation();
 
     const saveChapterUpdate = () => {
         setUpdateTrigger(!updateTrigger);
@@ -78,7 +87,17 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
     };
 
     const handleCheckForUpdates = async () => {
-        console.log(await story.getUpdates());
+        const newChaps = await story.getUpdates();
+        console.log(newChaps)
+        askConfirmation(
+            `Would you like to add ${newChaps.length} chapters to your manga`,
+            () => {
+                story.newChapters(newChaps);
+                setShowChaptersState(true);
+            },
+            'Yes',
+            'No'
+        );
     }
 
     const allRead = story.chapters.every(chapter => chapter.read);
@@ -136,6 +155,7 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
                     {story.title}
                     {!story.checkForUpdates && <span className="not-updating"> (Not Updating)</span>}
                 </h2>
+                <p className="story-status">Status: {story.status.charAt(0).toUpperCase() + story.status.slice(1) }</p>
                 <p className="story-summary">{story.summary}</p>
             </div>
 
@@ -208,6 +228,17 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
                     )}
                 </div>
             )}
+            {
+                isOpen && config && (
+                    <ConfirmationDialogue
+                        message={config.message}
+                        onConfirm={handleConfirm}
+                        onCancel={handleCancel}
+                        confirmText={config.confirmText}
+                        cancelText={config.cancelText}
+                    />
+                )
+            }
         </div>
     );
 };

@@ -13,7 +13,7 @@
 }
 
 .confirmation-dialog {
-    background-color: white;
+    background-color: var(--color-bg);
     padding: 20px;
     border-radius: 8px;
     box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
@@ -24,6 +24,7 @@
 .confirmation-dialog p {
     margin-bottom: 20px;
     font-size: 16px;
+    color: var(--color-text)
 }
 
 .confirmation-dialog .button-group {
@@ -33,18 +34,27 @@
 }
 
 .confirmation-dialog .confirm-button {
-    background-color: #4285f4;
-    color: white;
+    background-color: var(--color-save);
+    color: var(--color-text-4);
     padding: 8px 16px;
     border: none;
     border-radius: 4px;
     cursor: pointer;
 }
 
+.confirmation-dialog .confirm-button:hover {
+    background-color: var(--color-save-hover);
+}
+
 .confirmation-dialog .cancel-button {
-    background-color: #767676;
+    background-color: var(--color-neutral);
     padding: 8px 16px;
-    border: 1px solid #ddd;
+    border: 1px solid var(--color-neutral-border);
     border-radius: 4px;
     cursor: pointer;
+    color: var(--color-text)
+}
+
+.confirmation-dialog .cancel-button:hover {
+    background-color: var(--color-neutral-hover);
 }

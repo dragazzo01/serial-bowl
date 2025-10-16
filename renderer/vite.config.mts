@@ -20,7 +20,7 @@ export default defineConfig({
         short_name: 'SerialBowl',
         description: 'Track serialized content like manga, manhwa, and web novels',
         theme_color: '#ffffff',
-        start_url: '/index-pwa.html', // 🚨 point to your PWA-specific index
+        start_url: '/index.html', // 🚨 point to your PWA-specific index
         display: 'standalone',
       }
     })

@@ -1,6 +1,6 @@
 // MultiWindowManager.tsx
 import React, { useState, useEffect, useRef } from 'react';
-//import * as remote from '@electron/remote';
+import './MultiWindowManager.css'
 
 interface MultiWindowManagerProps {
     mainComponent: React.ReactNode;
@@ -103,8 +103,6 @@ const MultiWindowManager: React.FC<MultiWindowManagerProps> = ({
                             width: `${sideWindowWidth}px`,
                             height: '100%',
                             overflowY: 'auto',
-                            backgroundColor: '#f5f5f5',
-                            borderLeft: '1px solid #ccc',
                             position: 'relative',
                         }}
                     >
