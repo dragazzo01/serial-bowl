@@ -1,4 +1,9 @@
 import api from '../api/api'
+import {
+    applyStoryGrid,
+    StoryGridFilters,
+    StoryStatus,
+} from './storyGrid';
 
 function getDate(): string {
     return new Date().toLocaleDateString('en-US');
@@ -79,7 +84,7 @@ export interface StoryData {
     summary: string;
     homepageURL: string;
     checkForUpdates: boolean;
-    status: 'reading' | 'complete' | 'broken' | 'hidden' | 'hiatus' | 'dropped';
+    status: StoryStatus;
     additionalInfo: Record<string, string>;
     chapters: ChapterData[];
 }
@@ -91,7 +96,7 @@ export class Story {
     summary: string;
     homepageURL: string;
     checkForUpdates: boolean;
-    status: 'reading' | 'complete' | 'broken' | 'hidden' | 'hiatus' | 'dropped';
+    status: StoryStatus;
     additionalInfo: Record<string, string>;
     chapters: Chapter[];
 
@@ -244,26 +249,13 @@ export class Library {
         this.stories.push(story);
     }
 
-    // grid(): Story[] {
-    //     const gridOrder: Story[] = [];
-    //     let yellowInsert = 0;
-        
-    //     for (const story of this.stories) {
-    //         if (story.finished()) {
-    //             // Finished stories at back
-    //             gridOrder.push(story);
-    //         } else if (story.checkForUpdates) {
-    //             // Stories checking for updates at front
-    //             gridOrder.unshift(story);
-    //             yellowInsert++;
-    //         } else {
-    //             // Other stories in middle
-    //             gridOrder.splice(yellowInsert, 0, story);
-    //         }
-    //     }
-        
-    //     return gridOrder;
-    // }
+    grid(filters?: Partial<StoryGridFilters>): Story[] {
+        return applyStoryGrid(this.stories, filters);
+    }
+
+    static grid(stories: Story[], filters?: Partial<StoryGridFilters>): Story[] {
+        return applyStoryGrid(stories, filters);
+    }
 
     serialize(): StoryData[] {
         return this.stories.map(s => s.serialize());

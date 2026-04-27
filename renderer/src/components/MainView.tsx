@@ -112,11 +112,6 @@ const MainView: React.FC = () => {
             `Are you sure you want to save to cloud?`,
             async () => {
                 await api.saveToCloud([])
-                // if (success) {
-                //     console.log('it worked!!!')
-                // } else {
-                //     console.error(message)
-                // }
             },
             'Save',
             'Cancel',

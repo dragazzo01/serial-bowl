@@ -22,6 +22,10 @@ import path from 'path';
 import fs from 'fs/promises';
 import { exec } from "child_process";
 
+const PUBLIC_PATH = path.join(__dirname, '../../public/');
+const DEV_LIBRARY_PATH = path.join(__dirname, '../../example.json');
+const ASSETSDIR = "/home/dragazzo/Documents/SerialBowl/serial-bowl-assests";
+const LIBRARY_PATH = path.join(ASSETSDIR, 'library.json');
 
 const isDev = !app.isPackaged; // true when running `npm run dev`
 
@@ -41,6 +45,8 @@ function createWindow() {
   } else {
     win.loadFile(path.join(__dirname, '../renderer/index.html'));
   }
+
+  win.maximize();
 }
 
 app.whenReady().then(() => {
@@ -78,11 +84,6 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
-
-const PUBLIC_PATH = path.join(__dirname, '../../public/');
-const DEV_LIBRARY_PATH = path.join(__dirname, '../../example.json');
-const ASSETSDIR = "C:\\Users\\draga\\Documents\\serial-bowl-assets";
-const LIBRARY_PATH = path.join(ASSETSDIR, 'library.json');
 
 async function initializeLibrary() {
   try {
@@ -169,9 +170,9 @@ function runGitCommand(command: string): Promise<string> {
 }
 
 ipcMain.handle("saveToCloud", async (_data) => {
-  if (isDev) return { success: true, message: "Did not actually save as this is Dev Mode"}
+  // if (isDev) return { success: true, message: "Did not actually save as this is Dev Mode"}
   try {
-    await runGitCommand("git add .");
+    await runGitCommand("git add .")
     await runGitCommand(`git commit -m "desktop saved"`);
     await runGitCommand("git push");
     return { success: true, message: "Changes pushed to cloud" };
