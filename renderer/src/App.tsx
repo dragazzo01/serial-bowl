@@ -9,17 +9,15 @@ import './style/theme.css';
 
 function App() {
   if (api.isElectron) {
-    console.log("in electron");
     return (
       <LibraryProvider>
         <MainView />
       </LibraryProvider>
     );
   } else {
-    console.log("in website");
     return (
       <LibraryProvider>
-        <MainView />
+        <WebsiteView />
       </LibraryProvider>
     )
   }
