@@ -66,7 +66,7 @@ const MultiWindowManager: React.FC<MultiWindowManagerProps> = ({
     }, [sideComponent]);
 
     return (
-        <div className="multi-window-container" style={{ display: 'flex', height: '100vh', overflow: 'hidden' }}>
+        <div className="multi-window-container">
             {/* Main Window */}
             <div
                 ref={mainWindowRef}

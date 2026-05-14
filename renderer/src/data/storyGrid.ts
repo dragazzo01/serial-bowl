@@ -1,4 +1,4 @@
-export type StoryStatus = 'reading' | 'complete' | 'broken' | 'hidden' | 'hiatus' | 'dropped';
+import {StoryStatus} from './library'
 
 export type StoryGridSort =
     | 'default'
@@ -178,6 +178,10 @@ export function matchesStoryGridFilters(
     }
 
     if (filters.domain !== 'all' && getStoryDomain(story.homepageURL) !== filters.domain) {
+        return false;
+    }
+
+    if (filters.status === 'all' && story.status === 'hidden') {
         return false;
     }
 

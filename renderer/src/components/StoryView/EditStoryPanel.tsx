@@ -195,7 +195,6 @@ const EditStoryPanel: React.FC<EditStoryPanelProps> = ({
                     name="status"
                     value={editedStory.status}
                     onChange={(e) => {
-                        console.log(e.target.value);
                         setEditedStory(prev => ({
                             ...prev,
                             status: e.target.value as 'reading' | 'complete' | 'broken' | 'hidden' | 'hiatus' | 'dropped'

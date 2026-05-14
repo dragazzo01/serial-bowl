@@ -1,4 +1,16 @@
+.multi-window-container {
+    display: flex;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+.main-window,
 .side-window {
+    min-height: 0;
     background: var(--color-bg);
+}
+
+.side-window {
     border-left: 1px solid var(--color-bg-3);
 }

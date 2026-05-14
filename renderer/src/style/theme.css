@@ -51,6 +51,16 @@
     color: var(--color-text)
 }
 
+html,
+body,
+#root {
+    height: 100%;
+}
+
+body {
+    margin: 0;
+}
+
 /* Dark mode */
 @media (prefers-color-scheme: dark) {
     :root {

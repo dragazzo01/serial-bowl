@@ -1,9 +1,25 @@
 /* renderer/src/components/MainView.css */
+.main-view {
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
 .main-view-button-container {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    padding: 8px 0;
     margin-bottom: 5px;
     display: flex;
     gap: 10px;
-    /* Increased from 10px to 20px for more spacing */
+    background: var(--color-bg);
+    flex-shrink: 0;
+}
+
+.main-view .multi-window-container {
+    flex: 1;
 }
 
 .main-view-button {

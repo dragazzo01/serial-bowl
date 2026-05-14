@@ -2,7 +2,6 @@ import api from '../api/api'
 import {
     applyStoryGrid,
     StoryGridFilters,
-    StoryStatus,
 } from './storyGrid';
 
 function getDate(): string {
@@ -78,6 +77,7 @@ export class Chapter {
     }
 }
 
+export type StoryStatus = 'reading' | 'complete' | 'broken' | 'hidden' | 'hiatus' | 'dropped';
 export interface StoryData {
     title: string;
     coverImage: string;

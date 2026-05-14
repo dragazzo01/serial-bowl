@@ -1,5 +1,6 @@
 // Extend window type for electronAPI
 import {StoryData, ChapterData} from '../data/library'
+
 // api.ts
 export interface AppAPI {
     loadLibrary: () => Promise<StoryData[]>;
