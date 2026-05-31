@@ -9,15 +9,16 @@ export type StoryGridSort =
     | 'title-asc'
     | 'title-desc';
 
-export type StoryGridUpdatesFilter = 'all' | 'enabled' | 'disabled';
-export type StoryGridProgressFilter = 'all' | 'unfinished' | 'finished';
+export type StoryGridUpdatesFilter = 'enabled' | 'disabled';
+export type StoryGridProgressFilter = 'unfinished' | 'finished';
+export type StoryGridStatusFilter = 'reading' | 'complete' | 'broken' | 'hidden' | 'hiatus' | 'dropped';
 
 export interface StoryGridFilters {
     search: string;
-    updates: StoryGridUpdatesFilter;
-    progress: StoryGridProgressFilter;
-    status: 'all' | StoryStatus;
-    domain: string;
+    updates: StoryGridUpdatesFilter[];
+    progress: StoryGridProgressFilter[];
+    status: StoryGridStatusFilter[];
+    domain: string[];
     sort: StoryGridSort;
 }
 
@@ -38,10 +39,10 @@ export interface StoryGridStoryLike {
 
 export const DEFAULT_STORY_GRID_FILTERS: StoryGridFilters = {
     search: '',
-    updates: 'all',
-    progress: 'all',
-    status: 'all',
-    domain: 'all',
+    updates: ['enabled', 'disabled'],
+    progress: ['unfinished', 'finished'],
+    status: ['reading', 'complete', 'broken', 'hiatus', 'dropped'],
+    domain: ['all'],
     sort: 'default',
 };
 
@@ -56,19 +57,16 @@ export const STORY_GRID_SORT_OPTIONS: Array<{ value: StoryGridSort; label: strin
 ];
 
 export const STORY_GRID_UPDATES_OPTIONS: Array<{ value: StoryGridUpdatesFilter; label: string }> = [
-    { value: 'all', label: 'All Update States' },
     { value: 'enabled', label: 'Updates Enabled' },
     { value: 'disabled', label: 'Updates Disabled' },
 ];
 
 export const STORY_GRID_PROGRESS_OPTIONS: Array<{ value: StoryGridProgressFilter; label: string }> = [
-    { value: 'all', label: 'All Progress' },
     { value: 'unfinished', label: 'Unread Remaining' },
     { value: 'finished', label: 'All Read' },
 ];
 
-export const STORY_GRID_STATUS_OPTIONS: Array<{ value: StoryGridFilters['status']; label: string }> = [
-    { value: 'all', label: 'All Statuses' },
+export const STORY_GRID_STATUS_OPTIONS: Array<{ value: StoryGridStatusFilter; label: string }> = [
     { value: 'reading', label: 'Reading' },
     { value: 'complete', label: 'Complete' },
     { value: 'broken', label: 'Broken' },
@@ -97,13 +95,10 @@ export function getStoryGridDomainOptions<T extends StoryGridStoryLike>(
         ),
     ).sort((left, right) => left.localeCompare(right));
 
-    return [
-        { value: 'all', label: 'All Domains' },
-        ...domains.map((domain) => ({
-            value: domain,
-            label: domain,
-        })),
-    ];
+    return domains.map((domain) => ({
+        value: domain,
+        label: domain,
+    }));
 }
 
 function parseLibraryDate(value: string | null): number | null {
@@ -156,32 +151,31 @@ export function matchesStoryGridFilters(
         return false;
     }
 
-    if (filters.updates === 'enabled' && !story.checkForUpdates) {
-        return false;
-    }
-
-    if (filters.updates === 'disabled' && story.checkForUpdates) {
+    if (
+        !(
+            (filters.updates.includes('enabled') && story.checkForUpdates) ||
+            (filters.updates.includes('disabled') && !story.checkForUpdates)
+        )
+    ) {
         return false;
     }
 
     const isFinished = story.finished();
-    if (filters.progress === 'finished' && !isFinished) {
+    if (
+        !(
+            (filters.progress.includes('finished') && isFinished) ||
+            (filters.progress.includes('unfinished') && !isFinished)
+        )
+    ) {
         return false;
     }
 
-    if (filters.progress === 'unfinished' && isFinished) {
+    if (!filters.status.includes(story.status)) {
         return false;
     }
 
-    if (filters.status !== 'all' && story.status !== filters.status) {
-        return false;
-    }
-
-    if (filters.domain !== 'all' && getStoryDomain(story.homepageURL) !== filters.domain) {
-        return false;
-    }
-
-    if (filters.status === 'all' && story.status === 'hidden') {
+    const storyDomain = getStoryDomain(story.homepageURL);
+    if (!filters.domain.includes('all') && (!storyDomain || !filters.domain.includes(storyDomain))) {
         return false;
     }
 

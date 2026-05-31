@@ -52,23 +52,89 @@
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
     gap: 12px;
-    align-items: end;
+    align-items: start;
     padding: 12px;
     border: 1px solid var(--color-neutral-border);
     border-radius: 8px;
     background-color: var(--color-bg-2, var(--color-neutral));
 }
 
+.filter-stories-checkbox-group {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-neutral-border);
+    border-radius: 4px;
+    background-color: var(--color-neutral);
+    color: var(--color-text);
+    font-size: 14px;
+}
+
+.filter-stories-checkbox-group span,
+.filter-stories-field span {
+    font-size: 14px;
+}
+
+.filter-stories-checkbox-group summary {
+    list-style: none;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0;
+    padding: 10px 12px;
+    border: 1px solid var(--color-neutral-border);
+    border-radius: 4px;
+    background-color: var(--color-neutral);
+    color: var(--color-text);
+    font-size: 14px;
+    cursor: pointer;
+}
+
+.filter-stories-checkbox-group summary::-webkit-details-marker {
+    display: none;
+}
+
+.filter-stories-checkbox-group summary::after {
+    content: '▾';
+    transition: transform 0.2s ease;
+}
+
+.filter-stories-checkbox-group[open] summary::after {
+    transform: rotate(180deg);
+}
+
+.filter-stories-checkbox-group label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 14px;
+}
+
+.filter-stories-checkbox-group input[type="checkbox"] {
+    width: auto;
+    height: auto;
+    margin: 0;
+}
+
 .filter-stories-field {
     display: flex;
     flex-direction: column;
     gap: 6px;
-    font-size: 13px;
+    padding: 10px 12px;
+    border: 1px solid var(--color-neutral-border);
+    border-radius: 4px;
+    background-color: var(--color-neutral);
     color: var(--color-text);
+    font-size: 14px;
 }
 
 .filter-stories-field select {
     width: 100%;
+}
+
+.filter-stories-field select[multiple] {
+    min-height: 110px;
 }
 
 .filter-stories-reset:disabled {

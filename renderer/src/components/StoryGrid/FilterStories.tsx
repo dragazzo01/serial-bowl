@@ -2,6 +2,9 @@ import React from 'react';
 import {
     DEFAULT_STORY_GRID_FILTERS,
     StoryGridFilters,
+    StoryGridUpdatesFilter,
+    StoryGridProgressFilter,
+    StoryGridStatusFilter,
     getStoryGridDomainOptions,
     STORY_GRID_PROGRESS_OPTIONS,
     STORY_GRID_SORT_OPTIONS,
@@ -32,6 +35,10 @@ const FilterStories: React.FC<FilterStoriesProps> = ({
 }) => {
     const hasActiveFilters = JSON.stringify(filters) !== JSON.stringify(DEFAULT_STORY_GRID_FILTERS);
     const domainOptions = getStoryGridDomainOptions(stories);
+    const domainValues = domainOptions.map((option) => option.value);
+
+    const toggleArrayValue = <T extends string>(current: T[], value: T) =>
+        current.includes(value) ? current.filter((item) => item !== value) : [...current, value];
 
     return (
         <div className="filter-stories">
@@ -71,61 +78,83 @@ const FilterStories: React.FC<FilterStoriesProps> = ({
                         </select>
                     </label>
 
-                    <label className="filter-stories-field">
-                        <span>Updates</span>
-                        <select
-                            value={filters.updates}
-                            onChange={(event) => onFiltersChange({ updates: event.target.value as StoryGridFilters['updates'] })}
-                        >
-                            {STORY_GRID_UPDATES_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+                    <details className="filter-stories-checkbox-group">
+                        <summary>Updates</summary>
+                        {STORY_GRID_UPDATES_OPTIONS.map((option) => (
+                            <label key={option.value}>
+                                <input
+                                    type="checkbox"
+                                    checked={filters.updates.includes(option.value)}
+                                    onChange={() => {
+                                        const nextUpdates = toggleArrayValue(filters.updates, option.value);
+                                        onFiltersChange({ updates: nextUpdates });
+                                    }}
+                                />
+                                <span>{option.label}</span>
+                            </label>
+                        ))}
+                    </details>
 
-                    <label className="filter-stories-field">
-                        <span>Progress</span>
-                        <select
-                            value={filters.progress}
-                            onChange={(event) => onFiltersChange({ progress: event.target.value as StoryGridFilters['progress'] })}
-                        >
-                            {STORY_GRID_PROGRESS_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+                    <details className="filter-stories-checkbox-group">
+                        <summary>Progress</summary>
+                        {STORY_GRID_PROGRESS_OPTIONS.map((option) => (
+                            <label key={option.value}>
+                                <input
+                                    type="checkbox"
+                                    checked={filters.progress.includes(option.value)}
+                                    onChange={() => {
+                                        const nextProgress = toggleArrayValue(filters.progress, option.value);
+                                        onFiltersChange({ progress: nextProgress });
+                                    }}
+                                />
+                                <span>{option.label}</span>
+                            </label>
+                        ))}
+                    </details>
 
-                    <label className="filter-stories-field">
-                        <span>Status</span>
-                        <select
-                            value={filters.status}
-                            onChange={(event) => onFiltersChange({ status: event.target.value as StoryGridFilters['status'] })}
-                        >
-                            {STORY_GRID_STATUS_OPTIONS.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+                    <details className="filter-stories-checkbox-group">
+                        <summary>Status</summary>
+                        {STORY_GRID_STATUS_OPTIONS.map((option) => (
+                            <label key={option.value}>
+                                <input
+                                    type="checkbox"
+                                    checked={filters.status.includes(option.value)}
+                                    onChange={() => {
+                                        const nextStatus = toggleArrayValue(filters.status, option.value);
+                                        onFiltersChange({ status: nextStatus });
+                                    }}
+                                />
+                                <span>{option.label}</span>
+                            </label>
+                        ))}
+                    </details>
 
-                    <label className="filter-stories-field">
-                        <span>Domain</span>
-                        <select
-                            value={filters.domain}
-                            onChange={(event) => onFiltersChange({ domain: event.target.value })}
-                        >
-                            {domainOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                    {option.label}
-                                </option>
-                            ))}
-                        </select>
-                    </label>
+                    <details className="filter-stories-checkbox-group">
+                        <summary>Domain</summary>
+                        {domainOptions.map((option) => {
+                            const checked = filters.domain.includes('all') ? true : filters.domain.includes(option.value);
+                            return (
+                                <label key={option.value}>
+                                    <input
+                                        type="checkbox"
+                                        checked={checked}
+                                        onChange={() => {
+                                            const currentDomains = filters.domain.includes('all') ? domainValues : filters.domain;
+                                            const nextDomains = toggleArrayValue(currentDomains, option.value);
+
+                                            onFiltersChange({
+                                                domain:
+                                                    nextDomains.length === domainValues.length
+                                                        ? ['all']
+                                                        : nextDomains,
+                                            });
+                                        }}
+                                    />
+                                    <span>{option.label}</span>
+                                </label>
+                            );
+                        })}
+                    </details>
 
                     <button
                         type="button"

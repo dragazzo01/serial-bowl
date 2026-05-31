@@ -88,12 +88,13 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
 
     const handleCheckForUpdates = async () => {
         const newChaps = await story.getUpdates();
-        console.log(newChaps)
+        console.log(newChaps);
         askConfirmation(
             `Would you like to add ${newChaps.length} chapters to your manga`,
             () => {
                 story.newChapters(newChaps);
                 setShowChaptersState(true);
+                saveChapterUpdate();
             },
             'Yes',
             'No'
