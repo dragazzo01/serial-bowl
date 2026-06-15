@@ -17,7 +17,7 @@ export async function getStoryUpdateHTML(story: Story): Promise<string> {
     } else if (story.homepageURL.includes("genesistudio.com")) {
         return baseRequest(story.additionalInfo.chaptersLink);
     } else if (story.homepageURL.includes("mangadex.org")) {
-        return baseRequest(`https://api.mangadex.org/chapter?manga=${story.additionalInfo.mangaID}&translatedLanguage[]=en&order[chapter]=desc&limit=30`);
+        return baseRequest(`https://api.mangadex.org/chapter?manga=${story.additionalInfo.mangaID}&translatedLanguage[]=en&order[chapter]=desc&limit=30`, "curl/8.5.0");
     } else {
         throw new Error("No scrapper assigned to this story");
     }
