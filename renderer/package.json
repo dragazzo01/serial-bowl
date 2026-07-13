@@ -5,13 +5,14 @@
   "scripts": {
     "dev": "vite",
     "build": "cross-env BASEDIR=./ vite build",
-    "build:github": "cross-env BASEDIR=/serial-bowl/ vite build",
+    "build:github": "cross-env BASEDIR=/serial-bowl/ VITE_LIBRARY_SOURCE=static vite build",
     "build:localhost": "cross-env BASEDIR=/ vite build",
     "preview": "vite preview",
     "deploy": "npm run build:github && gh-pages -d ../dist/renderer",
     "serve": "npm run build:localhost && npx serve ../dist/renderer"
   },
   "dependencies": {
+    "firebase": "^12.16.0",
     "react": "^18.3.0",
     "react-dom": "^18.3.0"
   },

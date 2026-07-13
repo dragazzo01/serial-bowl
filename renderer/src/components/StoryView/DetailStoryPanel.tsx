@@ -53,12 +53,8 @@ const DetailStoryPanel: React.FC<DetailStoryPanelProps> = ({
     };
 
     const handleDeleteChapter = (chapter: Chapter) => {
-        // Remove the chapter from the story's chapters array
-        const chapterIndex = story.chapters.indexOf(chapter);
-        if (chapterIndex !== -1) {
-            story.chapters.splice(chapterIndex, 1);
-            saveChapterUpdate();
-        }
+        story.deleteChapter(chapter);
+        saveChapterUpdate();
     };
 
     const toggleDeleteMode = () => {

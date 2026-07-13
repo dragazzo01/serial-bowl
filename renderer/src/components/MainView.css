@@ -37,3 +37,18 @@
     background-color: var(--color-neutral-hover);
     border-color: var(--color-neutral-border);
 }
+
+.viewing-loaded-file-banner {
+    position: sticky;
+    top: 0;
+    z-index: 11;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px 12px;
+    border: 1px solid var(--color-neutral-border);
+    border-radius: 4px;
+    background: var(--color-neutral);
+    color: var(--color-text);
+    font-size: 14px;
+}

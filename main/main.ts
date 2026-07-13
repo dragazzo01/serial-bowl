@@ -15,15 +15,15 @@ if (!(global as any).File) {
   (global as any).File = File;
 }
 
-import { app, BrowserWindow, ipcMain, shell, protocol } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, protocol, dialog } from 'electron';
 import { getStoryUpdateHTML, parseStoryUpdateHTML } from './tracker';
-import { Story } from './lib';
+import { Story, StoryData, ChapterData } from './lib';
 import path from 'path';
 import fs from 'fs/promises';
-import { exec } from "child_process";
+import { collection, collectionGroup, getDocs, getDoc, query, orderBy, doc, setDoc, deleteDoc, writeBatch, QueryDocumentSnapshot } from 'firebase/firestore';
+import { db, toDocId } from './firebaseClient';
 
 const PUBLIC_PATH = path.join(__dirname, '../../public/');
-const DEV_LIBRARY_PATH = path.join(__dirname, '../../example.json');
 const ASSETSDIR = "/home/dragazzo/Documents/SerialBowl/serial-bowl-assests";
 const LIBRARY_PATH = path.join(ASSETSDIR, 'library.json');
 
@@ -35,6 +35,9 @@ function createWindow() {
     height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      // Sandboxed preload scripts can't import `electron`'s `app` module, so pass
+      // the dev flag through argv instead (readable via plain Node `process.argv`).
+      additionalArguments: [isDev ? '--sb-dev' : '--sb-prod'],
     },
     icon: path.join(PUBLIC_PATH, 'icon.ico')
   });
@@ -115,10 +118,55 @@ function getMimeType(filePath: string): string {
 }
 
 
+// Chapters are stored in fixed-size chunks (one Firestore doc holds up to this
+// many chapters) instead of one doc per chapter, so loading/reading the library
+// costs a handful of document reads instead of one per chapter. Must match the
+// chunk size used by renderer/src/data/firebaseClient.ts and scripts/migrateToFirebase.ts.
+const CHAPTER_CHUNK_SIZE = 100;
+
+function chunkArray<T>(items: T[], size: number): T[][] {
+  const result: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    result.push(items.slice(i, i + size));
+  }
+  return result;
+}
+
+// Reconstructs StoryData[] from Firestore's story-doc + chapterChunks-subcollection
+// shape, so the rest of the app can keep treating library data as a flat array.
+// Uses one collectionGroup query for every story's chunks instead of querying each
+// story's subcollection separately, and each chunk holds ~100 chapters instead of
+// 1 - together that's what keeps startup to a couple of document reads.
+async function loadLibraryFromFirestore(): Promise<StoryData[]> {
+  const [storiesSnap, chunksSnap] = await Promise.all([
+    getDocs(collection(db, 'stories')),
+    getDocs(query(collectionGroup(db, 'chapterChunks'), orderBy('chunkIndex'))),
+  ]);
+
+  // A global orderBy('chunkIndex') still guarantees each story's own chunks arrive
+  // in ascending order relative to each other, even though it's interleaved with
+  // every other story's chunks in the same stream.
+  const chaptersByStoryId = new Map<string, ChapterData[]>();
+  for (const chunkDoc of chunksSnap.docs) {
+    const storyId = chunkDoc.ref.parent.parent!.id;
+    const { chapters } = chunkDoc.data() as { chunkIndex: number; chapters: ChapterData[] };
+    if (!chaptersByStoryId.has(storyId)) chaptersByStoryId.set(storyId, []);
+    chaptersByStoryId.get(storyId)!.push(...chapters);
+  }
+
+  return storiesSnap.docs.map((storyDoc) => ({
+    ...(storyDoc.data() as Omit<StoryData, 'chapters'>),
+    chapters: chaptersByStoryId.get(storyDoc.id) ?? [],
+  }));
+}
+
 // Handle loading the library
 ipcMain.handle('loadLibrary', async () => {
   try {
-    const data = await fs.readFile(isDev ? DEV_LIBRARY_PATH :  LIBRARY_PATH, 'utf-8');
+    if (isDev) {
+      return await loadLibraryFromFirestore();
+    }
+    const data = await fs.readFile(LIBRARY_PATH, 'utf-8');
     return JSON.parse(data);
   } catch (error) {
     console.error('Error loading library:', error);
@@ -129,11 +177,129 @@ ipcMain.handle('loadLibrary', async () => {
 // Handle saving the library
 ipcMain.handle('saveLibrary', async (_, data) => {
   try {
-    if (!isDev) 
-      await fs.writeFile(isDev ? DEV_LIBRARY_PATH : LIBRARY_PATH, JSON.stringify(data, null, 2), 'utf-8');
+    if (!isDev)
+      await fs.writeFile(LIBRARY_PATH, JSON.stringify(data, null, 2), 'utf-8');
     return { success: true };
   } catch (error) {
     console.error('Error saving library:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+// Firestore batches cap at 500 writes; stay comfortably under that.
+async function commitInBatches(refs: { ref: any; data?: any }[], op: 'set' | 'delete'): Promise<void> {
+  for (const group of chunkArray(refs, 400)) {
+    const batch = writeBatch(db);
+    group.forEach(({ ref, data }) => {
+      if (op === 'set') batch.set(ref, data);
+      else batch.delete(ref);
+    });
+    await batch.commit();
+  }
+}
+
+function chunkDocRef(storyRef: ReturnType<typeof doc>, chunkIndex: number) {
+  return doc(collection(storyRef, 'chapterChunks'), chunkIndex.toString().padStart(4, '0'));
+}
+
+// Granular writes for the Firestore/emulator path only (see loadLibraryFromFirestore
+// above) — these exist so reading/marking-read doesn't rewrite the whole library on
+// every action, which would burn through Firestore's free daily write quota fast.
+ipcMain.handle('updateStoryMeta', async (_, storyId: string, meta: Partial<StoryData>) => {
+  try {
+    const storyRef = doc(db, 'stories', toDocId(storyId));
+    await setDoc(storyRef, meta, { merge: true });
+    return { success: true };
+  } catch (error) {
+    console.error('Error updating story meta:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+// Chapters only ever change a few at a time (mark read, check for updates), but
+// each one lives inside a ~100-chapter chunk doc. So for each touched chunk: read
+// its current contents, patch just the changed slots, write the whole chunk back.
+// Still one read + one write per touched CHUNK, not per chapter.
+//
+// TODO before prod: if a chunk doesn't exist yet (existing.exists() === false) and
+// the first dirty index for it isn't 0, `currentChapters` ends up sparse and
+// setDoc() will throw on the resulting `undefined` slots. Shouldn't happen in
+// normal use (chunks are always first created starting at local offset 0), but a
+// prior failed write whose dirty flag got cleared anyway (see the saveLibrary()
+// TODO in renderer/src/data/library.ts) could leave a chunk in exactly that state.
+ipcMain.handle('upsertChapters', async (_, storyId: string, chapters: Array<ChapterData & { order: number }>) => {
+  try {
+    const storyRef = doc(db, 'stories', toDocId(storyId));
+    const byChunk = new Map<number, Array<ChapterData & { order: number }>>();
+    for (const chapter of chapters) {
+      const chunkIndex = Math.floor(chapter.order / CHAPTER_CHUNK_SIZE);
+      if (!byChunk.has(chunkIndex)) byChunk.set(chunkIndex, []);
+      byChunk.get(chunkIndex)!.push(chapter);
+    }
+
+    for (const [chunkIndex, dirtyChapters] of byChunk) {
+      const chunkRef = chunkDocRef(storyRef, chunkIndex);
+      const existing = await getDoc(chunkRef);
+      const currentChapters: ChapterData[] = existing.exists()
+        ? (existing.data().chapters as ChapterData[])
+        : [];
+
+      for (const { order, ...chapterData } of dirtyChapters) {
+        currentChapters[order - chunkIndex * CHAPTER_CHUNK_SIZE] = chapterData;
+      }
+
+      await setDoc(chunkRef, { chunkIndex, chapters: currentChapters });
+    }
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error upserting chapters:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+// Full delete+rewrite of one story's chapter chunks. Only used for the rare
+// structural edits (insert/delete a chapter mid-list shifts every order after it) —
+// still far cheaper than touching every other story in the library.
+//
+// TODO before prod: the delete batch(es) and the write batch(es) below are not one
+// atomic operation. A crash/connection loss between them leaves this story's
+// chapterChunks subcollection empty - all its chapters gone - until re-synced.
+// Worth wrapping in a transaction (or at least writing the new chunks before
+// deleting the old ones) before this points at a real backend over a real network.
+ipcMain.handle('replaceChapters', async (_, storyId: string, chapters: ChapterData[]) => {
+  try {
+    const storyRef = doc(db, 'stories', toDocId(storyId));
+    const chunksCol = collection(storyRef, 'chapterChunks');
+    const existing = await getDocs(chunksCol);
+
+    await commitInBatches(existing.docs.map((d: QueryDocumentSnapshot) => ({ ref: d.ref })), 'delete');
+
+    const refs = chunkArray(chapters, CHAPTER_CHUNK_SIZE).map((group, chunkIndex) => ({
+      ref: chunkDocRef(storyRef, chunkIndex),
+      data: { chunkIndex, chapters: group },
+    }));
+    await commitInBatches(refs, 'set');
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error replacing chapters:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle('deleteStory', async (_, storyId: string) => {
+  try {
+    const storyRef = doc(db, 'stories', toDocId(storyId));
+    const chunksCol = collection(storyRef, 'chapterChunks');
+    const existing = await getDocs(chunksCol);
+
+    await commitInBatches(existing.docs.map((d: QueryDocumentSnapshot) => ({ ref: d.ref })), 'delete');
+    await deleteDoc(storyRef);
+
+    return { success: true };
+  } catch (error) {
+    console.error('Error deleting story:', error);
     return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 });
@@ -157,26 +323,47 @@ ipcMain.handle('openExternal', async (_, url) => {
 
 // getImageURL is app.whenReady().then(()=> ...)
 
-function runGitCommand(command: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    exec(command, { cwd: ASSETSDIR }, (error, stdout, stderr) => {
-      if (error) {
-        reject(stderr || error.message);
-      } else {
-        resolve(stdout.trim());
-      }
-    });
-  });
-}
-
-ipcMain.handle("saveToCloud", async (_data) => {
-  // if (isDev) return { success: true, message: "Did not actually save as this is Dev Mode"}
+// Electron-only manual export/import, using native OS file dialogs. Not part of
+// the isomorphic api.ts contract - the PWA build has no equivalent.
+ipcMain.handle('saveLibraryToFile', async (_, data: StoryData[]) => {
   try {
-    await runGitCommand("git add .")
-    await runGitCommand(`git commit -m "desktop saved"`);
-    await runGitCommand("git push");
-    return { success: true, message: "Changes pushed to cloud" };
-  } catch (err) {
-    return { success: false, message: String(err) };
+    const options: Electron.SaveDialogOptions = {
+      title: 'Save Library',
+      defaultPath: 'library.json',
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    };
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    const { canceled, filePath } = focusedWindow
+      ? await dialog.showSaveDialog(focusedWindow, options)
+      : await dialog.showSaveDialog(options);
+    if (canceled || !filePath) return { success: false, canceled: true };
+
+    await fs.writeFile(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    return { success: true, filePath };
+  } catch (error) {
+    console.error('Error saving library to file:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
+  }
+});
+
+ipcMain.handle('loadLibraryFromFile', async () => {
+  try {
+    const options: Electron.OpenDialogOptions = {
+      title: 'Load Library',
+      properties: ['openFile'],
+      filters: [{ name: 'JSON', extensions: ['json'] }],
+    };
+    const focusedWindow = BrowserWindow.getFocusedWindow();
+    const { canceled, filePaths } = focusedWindow
+      ? await dialog.showOpenDialog(focusedWindow, options)
+      : await dialog.showOpenDialog(options);
+    if (canceled || filePaths.length === 0) return { success: false, canceled: true };
+
+    const raw = await fs.readFile(filePaths[0], 'utf-8');
+    const stories: StoryData[] = JSON.parse(raw);
+    return { success: true, stories };
+  } catch (error) {
+    console.error('Error loading library from file:', error);
+    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 });

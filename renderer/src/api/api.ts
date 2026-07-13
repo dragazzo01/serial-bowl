@@ -1,40 +1,63 @@
 // Extend window type for electronAPI
 import {StoryData, ChapterData} from '../data/library'
+import {
+    loadLibraryFromFirestore,
+    updateStoryMetaFirestore,
+    upsertChaptersFirestore,
+} from '../data/firebaseClient'
+
+export type OrderedChapterData = ChapterData & { order: number };
 
 // api.ts
 export interface AppAPI {
+    isDev: boolean;
     loadLibrary: () => Promise<StoryData[]>;
     saveLibrary: (data: StoryData[]) => Promise<{ success: boolean }>;
+    updateStoryMeta: (storyId: string, meta: Partial<StoryData>) => Promise<{ success: boolean }>;
+    upsertChapters: (storyId: string, chapters: OrderedChapterData[]) => Promise<{ success: boolean }>;
+    replaceChapters: (storyId: string, chapters: ChapterData[]) => Promise<{ success: boolean }>;
+    deleteStoryRemote: (storyId: string) => Promise<{ success: boolean }>;
     getUpdateHTML: (story: StoryData) => Promise<string>;
     parseUpdateHTML: (story: StoryData, response: string) => Promise<ChapterData[]>
     openExternal: (url: string) => void;
     getImageUrl: (relativePath: string) => Promise<string>;
-    saveToCloud: (data: StoryData[]) => Promise<{ success: boolean, message: string}>;
     isElectron: boolean;
 }
 
 declare global {
     interface Window {
         electronAPI: {
+            isDev: boolean;
             loadLibrary: () => Promise<StoryData[]>;
             saveLibrary: (data: StoryData[]) => Promise<{ success: boolean }>;
+            updateStoryMeta: (storyId: string, meta: Partial<StoryData>) => Promise<{ success: boolean }>;
+            upsertChapters: (storyId: string, chapters: OrderedChapterData[]) => Promise<{ success: boolean }>;
+            replaceChapters: (storyId: string, chapters: ChapterData[]) => Promise<{ success: boolean }>;
+            deleteStoryRemote: (storyId: string) => Promise<{ success: boolean }>;
             getUpdateHTML: (story: StoryData) => Promise<string>;
             parseUpdateHTML: (story: StoryData, response: string) => Promise<ChapterData[]>
             openExternal: (url: string) => void;
             getImageUrl: (relativePath: string) => Promise<string>;
-            saveToCloud: (data: StoryData[]) => Promise<{ success: boolean, message: string }>;
+            // Electron-only manual export/import via native file dialogs - not part
+            // of AppAPI since the PWA build has no equivalent.
+            saveLibraryToFile: (data: StoryData[]) => Promise<{ success: boolean; canceled?: boolean; filePath?: string; error?: string }>;
+            loadLibraryFromFile: () => Promise<{ success: boolean; canceled?: boolean; stories?: StoryData[]; error?: string }>;
         };
     }
 }
 
 const electronAPI: AppAPI = {
+    isDev: false, // overwritten below once window.electronAPI is available
     loadLibrary: () => window.electronAPI.loadLibrary(),
     saveLibrary: (data) => window.electronAPI.saveLibrary(data),
+    updateStoryMeta: (storyId, meta) => window.electronAPI.updateStoryMeta(storyId, meta),
+    upsertChapters: (storyId, chapters) => window.electronAPI.upsertChapters(storyId, chapters),
+    replaceChapters: (storyId, chapters) => window.electronAPI.replaceChapters(storyId, chapters),
+    deleteStoryRemote: (storyId) => window.electronAPI.deleteStoryRemote(storyId),
     getUpdateHTML: (story: StoryData) => window.electronAPI.getUpdateHTML(story),
     parseUpdateHTML: (story: StoryData, response: string) => window.electronAPI.parseUpdateHTML(story, response),
     openExternal: (url) => window.electronAPI.openExternal(url),
     getImageUrl: (path) => window.electronAPI.getImageUrl(path),
-    saveToCloud: (data) => window.electronAPI.saveToCloud(data),
     isElectron: true,
 };
 const defaultUA =
@@ -59,8 +82,22 @@ async function baseRequest(url: string, userAgent: string = defaultUA): Promise<
 }
 
 
+// `import.meta.env.DEV` can't distinguish "local build served with npx serve"
+// (npm run serve -> build:localhost, a real production vite build) from "the
+// actual deployed GitHub Pages PWA" - both are production builds. So this is
+// its own explicit flag instead: everything defaults to Firestore/the emulator
+// unless VITE_LIBRARY_SOURCE=static, which build:github sets for the one real
+// deployed build that still needs the static library.json fallback.
+const useFirestoreLibrary = import.meta.env.VITE_LIBRARY_SOURCE !== 'static';
+
 const browserAPI: AppAPI = {
+    isDev: useFirestoreLibrary,
+
     loadLibrary: async (): Promise<StoryData[]> => {
+        if (useFirestoreLibrary) {
+            return loadLibraryFromFirestore();
+        }
+
         const data = await fetch("https://dragazzo01.github.io/serial-bowl-assests/library.json")
 
         if (!data.ok) {
@@ -75,22 +112,43 @@ const browserAPI: AppAPI = {
         return {success: true}
     },
 
-    getUpdateHTML: async (story: StoryData) => {
-        if(story.homepageURL.includes("frieren.online")) {
-            return baseRequest(story.homepageURL);
-        } else if(story.homepageURL.includes("demonicscans.org")) {
-            return baseRequest(story.homepageURL);
-        } else if (story.homepageURL.includes("lightnovelworld.org")) {
-            return baseRequest(story.additionalInfo.chaptersLink);
-        } else if (story.homepageURL.includes("royalroad.com")) {
-            return baseRequest(story.homepageURL);
-        } else if (story.homepageURL.includes("genesistudio.com")) {
-            return baseRequest(story.additionalInfo.chaptersLink);
-        } else if (story.homepageURL.includes("mangadex.org")) {
-            return baseRequest(`https://api.mangadex.org/chapter?manga=${story.additionalInfo.mangaID}&translatedLanguage[]=en&order[chapter]=desc&limit=30`);
-        } else {
-            throw new Error("No scrapper assigned to this story");
+    updateStoryMeta: async (storyId, meta) => {
+        try {
+            await updateStoryMetaFirestore(storyId, meta);
+            return { success: true };
+        } catch (error) {
+            console.error('Error updating story meta:', error);
+            return { success: false };
         }
+    },
+
+    upsertChapters: async (storyId, chapters) => {
+        try {
+            await upsertChaptersFirestore(storyId, chapters);
+            return { success: true };
+        } catch (error) {
+            console.error('Error upserting chapters:', error);
+            return { success: false };
+        }
+    },
+
+    // The website never issues Firestore deletes - a chapter delete/insert-at-position
+    // (structural change) and a story delete both only remove things locally here,
+    // and are lost on reload since nothing was actually persisted. Only Electron,
+    // which you fully control, can delete for real.
+    replaceChapters: async () => {
+        console.log('Structural chapter change kept local only - not saved from the website');
+        return { success: true };
+    },
+
+    deleteStoryRemote: async () => {
+        console.log('Story deletion kept local only - not saved from the website');
+        return { success: true };
+    },
+
+    getUpdateHTML: async (_story: StoryData) => {
+        console.log('Not actually going to scrape stories')
+        return "";
     },
 
     parseUpdateHTML: async (story: StoryData, response: string) => {
@@ -105,17 +163,16 @@ const browserAPI: AppAPI = {
         return `https://dragazzo01.github.io/serial-bowl-assests/images/${relativePath}`;
     },
 
-    saveToCloud: async (data: StoryData[]) => {
-        console.log('saved to cloud (not)');
-        return {success: true, message: "Can't Do this without electron"};
-    },
-
     isElectron: false,
 };
 
 
 function isElectron(): boolean {
     return !!(window as any).electronAPI;
+}
+
+if (isElectron()) {
+    electronAPI.isDev = window.electronAPI.isDev;
 }
 
 const api: AppAPI = isElectron() ? electronAPI : browserAPI;
