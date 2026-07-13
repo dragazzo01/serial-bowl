@@ -107,16 +107,29 @@ const MainView: React.FC = () => {
         )
     }
 
-    const handleSaveToCloud = async () => {
+    const handleSaveToFile = async () => {
+        await window.electronAPI.saveLibraryToFile(library.serialize());
+    }
+
+    const handleLoadFromFile = () => {
         askConfirmation(
-            `Are you sure you want to save to cloud?`,
+            `Loading a file will replace your current library for viewing. Changes won't be saved. Are you sure?`,
             async () => {
-                await api.saveToCloud([])
+                const result = await window.electronAPI.loadLibraryFromFile();
+                if (result.success && result.stories) {
+                    library.replaceAll(result.stories);
+                    setStories([...library.stories]);
+                }
             },
-            'Save',
+            'Load',
             'Cancel',
         )
-        
+    }
+
+    const handleReturnToLibrary = async () => {
+        const freshLibrary = await loadLibrary();
+        setStories(freshLibrary.stories);
+        setSideWindow('none');
     }
 
     return (
@@ -129,6 +142,14 @@ const MainView: React.FC = () => {
                     confirmText={config.confirmText}
                     cancelText={config.cancelText}
                 />
+            )}
+            {library.viewingLoadedFile && (
+                <div className="viewing-loaded-file-banner">
+                    Viewing a loaded file — changes here won't be saved.
+                    <button onClick={handleReturnToLibrary} className="main-view-button">
+                        Return to Library
+                    </button>
+                </div>
             )}
             <div className="main-view-button-container">
                 <button
@@ -149,12 +170,22 @@ const MainView: React.FC = () => {
                 >
                     Delete Story
                 </button>
-                <button
-                    onClick={handleSaveToCloud}
-                    className="main-view-button"
-                >
-                    Save to Cloud
-                </button>
+                {api.isElectron && (
+                    <>
+                        <button
+                            onClick={handleSaveToFile}
+                            className="main-view-button"
+                        >
+                            Save to File
+                        </button>
+                        <button
+                            onClick={handleLoadFromFile}
+                            className="main-view-button"
+                        >
+                            Load from File
+                        </button>
+                    </>
+                )}
             </div>
             <MultiWindowManager
                 mainComponent={

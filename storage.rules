@@ -1,0 +1,11 @@
+rules_version = '2';
+
+// See firestore.rules — same caveat: lock this down with Auth before
+// ever deploying to a real project.
+service firebase.storage {
+  match /b/{bucket}/o {
+    match /{allPaths=**} {
+      allow read, write: if true;
+    }
+  }
+}

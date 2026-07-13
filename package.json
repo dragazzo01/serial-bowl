@@ -17,11 +17,13 @@
     "serve": "cd renderer && npm run serve",
     "netlify": "netlify dev",
     "prod": "npm run clean && npm run build && npx electron-builder --linux snap && sudo snap install ./release/serial-bowl_1.0.0_amd64.snap --dangerous",
-    "test": "cd main && tsc -p tsconfig.json && npx ts-node test.ts"
+    "test": "npx ts-node scripts/test.ts",
+    "emulators": "firebase emulators:start --project demo-serial-bowl --import=./.emulator-data --export-on-exit",
+    "migrate:firebase": "npx ts-node --transpile-only scripts/migrateToFirebase.ts"
   },
   "dependencies": {
     "cheerio": "^1.1.2",
-    "firebase": "^12.12.1",
+    "firebase": "^12.16.0",
     "puppeteer": "^24.39.1"
   },
   "devDependencies": {
@@ -32,6 +34,7 @@
     "concurrently": "^8.2.2",
     "electron": "^41.0.2",
     "electron-builder": "^26.0.12",
+    "firebase-tools": "^15.23.0",
     "playwright": "^1.60.0",
     "typescript": "^5.0.0",
     "wait-on": "^7.0.1"

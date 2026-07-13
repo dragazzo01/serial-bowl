@@ -76,4 +76,11 @@ output.html
 # Optional: exclude local development files
 .sass-cache/
 *.css.map
-main/test.ts
+scripts/test.ts
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.emulator-data/
