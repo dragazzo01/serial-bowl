@@ -269,6 +269,10 @@ export class Library {
     // without it touching the real synced library. saveLibrary() becomes a no-op
     // while this is set, so nothing here is persisted anywhere.
     viewingLoadedFile: boolean = false;
+    // Serializes saveLibrary() calls so two rapid edits can't race on the same
+    // dirty-flag state - each call's own outcome is still returned to its caller
+    // via the promise saveLibrary() hands back, only the underlying work is queued.
+    private saveChain: Promise<void> = Promise.resolve();
 
     constructor() {
         this.stories = []
@@ -297,54 +301,62 @@ export class Library {
     // for structural edits - instead of rewriting the whole library every time,
     // which would burn through Firestore's free daily write quota fast once this
     // points at a real project. Packaged builds still use the old blanket file save.
-    //
-    // TODO before pointing this at a real (non-emulator) Firebase project: none of
-    // the api.* calls below have their {success} result checked, and every one of
-    // them swallows its own errors instead of throwing - so a failed write (offline,
-    // permission denied, quota) still clears the dirty flag as if it saved, silently
-    // losing the edit. Also not reentrant - callers currently fire saveLibrary()
-    // without awaiting it, so two rapid edits can race on the same dirty-flag state.
-    // Fine for now since this only talks to the local emulator, but needs a
-    // success-check + retry/queue (and probably a call-site await/serialize) before
-    // relying on it against a real backend over a real network.
-    async saveLibrary(): Promise<void> {
+    saveLibrary(): Promise<void> {
+        const run = this.saveChain.then(() => this.doSaveLibrary());
+        // Keep the chain itself always resolving, so one failed save doesn't
+        // permanently wedge every future call - each call's own success/failure
+        // is still reflected in the `run` promise returned to its own caller.
+        this.saveChain = run.catch(() => {});
+        return run;
+    }
+
+    private async doSaveLibrary(): Promise<void> {
         if (this.viewingLoadedFile) {
             console.log('Viewing a loaded file - changes are not being saved.');
             return;
         }
 
         if (!api.isDev) {
-            await api.saveLibrary(this.stories.map(s => s.serialize()));
+            const result = await api.saveLibrary(this.stories.map(s => s.serialize()));
+            if (!result.success) throw new Error('Failed to save library to file');
             console.log('Saved Successfully');
             return;
         }
 
+        // Only drop ids whose delete actually succeeded - anything else stays
+        // queued and gets retried on the next saveLibrary() call.
+        const stillPendingDeletes: string[] = [];
         for (const id of this.pendingDeletedIds) {
-            await api.deleteStoryRemote(id);
+            const result = await api.deleteStoryRemote(id);
+            if (!result.success) stillPendingDeletes.push(id);
         }
-        this.pendingDeletedIds = [];
+        this.pendingDeletedIds = stillPendingDeletes;
 
         for (const story of this.stories) {
             if (story.metaDirty) {
                 const { chapters, ...meta } = story.serialize();
-                await api.updateStoryMeta(story.id, meta);
-                story.metaDirty = false;
+                const result = await api.updateStoryMeta(story.id, meta);
+                if (result.success) story.metaDirty = false;
             }
 
             if (story.structuralChange) {
-                await api.replaceChapters(story.id, story.chapters.map(c => c.serialize()));
-                story.structuralChange = false;
-                story.chapters.forEach(c => { c.dirty = false; });
+                const result = await api.replaceChapters(story.id, story.chapters.map(c => c.serialize()));
+                if (result.success) {
+                    story.structuralChange = false;
+                    story.chapters.forEach(c => { c.dirty = false; });
+                }
                 continue;
             }
 
             const dirtyChapters = story.chapters.filter(c => c.dirty);
             if (dirtyChapters.length > 0) {
-                await api.upsertChapters(
+                const result = await api.upsertChapters(
                     story.id,
                     dirtyChapters.map(c => ({ ...c.serialize(), order: c.order }))
                 );
-                dirtyChapters.forEach(c => { c.dirty = false; });
+                if (result.success) {
+                    dirtyChapters.forEach(c => { c.dirty = false; });
+                }
             }
         }
 

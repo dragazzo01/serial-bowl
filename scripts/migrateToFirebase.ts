@@ -1,24 +1,17 @@
-import { initializeApp } from 'firebase/app';
 import {
-    getFirestore,
-    connectFirestoreEmulator,
     doc,
     setDoc,
     collection,
 } from 'firebase/firestore';
-import {
-    getStorage,
-    connectStorageEmulator,
-    ref,
-    uploadBytes,
-} from 'firebase/storage';
 import fs from 'fs/promises';
 import path from 'path';
+// Reuses the same env-driven config, emulator switch, and Auth sign-in as the
+// Electron app itself, so this script always talks to whichever project (demo
+// emulator or real) main.ts would - see ../main/firebaseClient.ts.
+import { db, authReady, toDocId } from '../main/firebaseClient';
 
-const PROJECT_ID = 'demo-serial-bowl';
 const ASSETS_DIR = '/home/dragazzo/Documents/SerialBowl/serial-bowl-assests';
 const LIBRARY_PATH = path.join(ASSETS_DIR, 'library.json');
-const IMAGES_DIR = path.join(ASSETS_DIR, 'images');
 
 // Chapters are stored in fixed-size chunks (one Firestore doc holds up to this
 // many chapters) instead of one doc per chapter, so loading/reading the library
@@ -45,44 +38,7 @@ interface StoryData {
     chapters: ChapterData[];
 }
 
-// Firestore document IDs can't contain "/"; titles are otherwise safe to use directly.
-function toDocId(title: string): string {
-    const cleaned = title.trim().replace(/\//g, '-');
-    if (!cleaned || cleaned === '.' || cleaned === '..') {
-        throw new Error(`Story title can't be used as a Firestore doc id: "${title}"`);
-    }
-    return cleaned;
-}
-
-async function walk(dir: string, base: string = dir): Promise<string[]> {
-    const entries = await fs.readdir(dir, { withFileTypes: true });
-    const files: string[] = [];
-    for (const entry of entries) {
-        const full = path.join(dir, entry.name);
-        if (entry.isDirectory()) {
-            files.push(...(await walk(full, base)));
-        } else {
-            files.push(path.relative(base, full));
-        }
-    }
-    return files;
-}
-
-async function uploadImages(storage: ReturnType<typeof getStorage>): Promise<void> {
-    const files = await walk(IMAGES_DIR);
-    console.log(`Uploading ${files.length} image(s)...`);
-    for (const relPath of files) {
-        const buffer = await fs.readFile(path.join(IMAGES_DIR, relPath));
-        const storageRef = ref(storage, `images/${relPath}`);
-        await uploadBytes(storageRef, buffer);
-        console.log(`  uploaded images/${relPath}`);
-    }
-}
-
-async function migrateStory(
-    db: ReturnType<typeof getFirestore>,
-    story: StoryData,
-): Promise<void> {
+async function migrateStory(story: StoryData): Promise<void> {
     const storyId = toDocId(story.title);
     const storyRef = doc(db, 'stories', storyId);
 
@@ -103,23 +59,17 @@ async function migrateStory(
 }
 
 async function run(): Promise<void> {
-    const app = initializeApp({
-        projectId: PROJECT_ID,
-        storageBucket: `${PROJECT_ID}.appspot.com`,
-    });
-    const db = getFirestore(app);
-    const storage = getStorage(app);
-    connectFirestoreEmulator(db, '127.0.0.1', 8080);
-    connectStorageEmulator(storage, '127.0.0.1', 9199);
+    await authReady;
 
-    await uploadImages(storage);
-
+    // Images stay out of this for now - Firebase Storage requires the Blaze
+    // plan, and Electron already serves them straight off local disk (see
+    // main.ts's app-image protocol handler), so Storage isn't needed yet.
     console.log('Migrating stories...');
     const raw = await fs.readFile(LIBRARY_PATH, 'utf-8');
     const stories: StoryData[] = JSON.parse(raw);
 
     for (const story of stories) {
-        await migrateStory(db, story);
+        await migrateStory(story);
     }
 
     console.log(`Done. Migrated ${stories.length} stories.`);

@@ -107,10 +107,12 @@ const EditStoryPanel: React.FC<EditStoryPanelProps> = ({
                     story.editStory(fixedStory);
                     onSave(story);
                 } else {
-                    const newStory = Story.empty()
-                    newStory.editStory(fixedStory)
+                    // Construct directly with the real title already in place, so the
+                    // frozen id (computed once, in the constructor) is slugified from
+                    // it - not from Story.empty()'s placeholder "No Story" title.
+                    const newStory = new Story({ ...fixedStory, chapters: [] });
                     onSave(newStory);
-                }                
+                }
             },
             story ? 'Save' : 'Create',
             'Cancel'

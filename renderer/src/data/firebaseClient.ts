@@ -12,6 +12,7 @@ import {
     setDoc,
 } from 'firebase/firestore';
 import { connectStorageEmulator, getStorage } from 'firebase/storage';
+import { getAuth, connectAuthEmulator, signInAnonymously } from 'firebase/auth';
 // Type-only: library.ts imports api.ts, which will import from this file, so this
 // must never become a real runtime import or it'd be a circular dependency.
 import type { StoryData, ChapterData } from './library';
@@ -37,15 +38,34 @@ const useEmulators = import.meta.env.VITE_USE_FIREBASE_EMULATORS !== 'false';
 export const firebaseApp = initializeApp(firebaseConfig);
 export const db = getFirestore(firebaseApp);
 export const storage = getStorage(firebaseApp);
+const auth = getAuth(firebaseApp);
 
-// Vite HMR can re-run this module; guard so we don't try to connect twice.
-const globalFlags = globalThis as unknown as { __sbEmulatorsConnected?: boolean };
+// Vite HMR can re-run this module; guard so we don't try to connect/sign-in twice.
+const globalFlags = globalThis as unknown as {
+    __sbEmulatorsConnected?: boolean;
+    __sbAuthReady?: Promise<void>;
+};
 
 if (useEmulators && !globalFlags.__sbEmulatorsConnected) {
     connectFirestoreEmulator(db, 'localhost', 8080);
     connectStorageEmulator(storage, 'localhost', 9199);
+    connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
     globalFlags.__sbEmulatorsConnected = true;
 }
+
+// Firestore rules require request.auth != null (see ../../../firestore.rules) -
+// not per-user access control (there's only one user), just a gate against
+// anyone who didn't come through the app. Every exported Firestore call below
+// awaits this first.
+if (!globalFlags.__sbAuthReady) {
+    globalFlags.__sbAuthReady = signInAnonymously(auth)
+        .then(() => {})
+        .catch((error) => {
+            console.error('Firebase anonymous sign-in failed:', error);
+            throw error;
+        });
+}
+export const authReady: Promise<void> = globalFlags.__sbAuthReady;
 
 // Firestore document IDs can't contain "/"; titles are otherwise safe to use directly.
 export function toDocId(title: string): string {
@@ -69,6 +89,7 @@ function chunkDocRef(storyRef: ReturnType<typeof doc>, chunkIndex: number) {
 // Reconstructs StoryData[] from Firestore's story-doc + chapterChunks-subcollection
 // shape - mirrors main/main.ts's loadLibraryFromFirestore for the Electron side.
 export async function loadLibraryFromFirestore(): Promise<StoryData[]> {
+    await authReady;
     const [storiesSnap, chunksSnap] = await Promise.all([
         getDocs(collection(db, 'stories')),
         getDocs(query(collectionGroup(db, 'chapterChunks'), orderBy('chunkIndex'))),
@@ -92,6 +113,7 @@ export async function loadLibraryFromFirestore(): Promise<StoryData[]> {
 }
 
 export async function updateStoryMetaFirestore(storyId: string, meta: Partial<StoryData>): Promise<void> {
+    await authReady;
     const storyRef = doc(db, 'stories', toDocId(storyId));
     await setDoc(storyRef, meta, { merge: true });
 }
@@ -104,6 +126,7 @@ export async function upsertChaptersFirestore(
     storyId: string,
     chapters: Array<ChapterData & { order: number }>
 ): Promise<void> {
+    await authReady;
     const storyRef = doc(db, 'stories', toDocId(storyId));
     const byChunk = new Map<number, Array<ChapterData & { order: number }>>();
     for (const chapter of chapters) {

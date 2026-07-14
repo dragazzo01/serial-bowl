@@ -21,7 +21,7 @@ import { Story, StoryData, ChapterData } from './lib';
 import path from 'path';
 import fs from 'fs/promises';
 import { collection, collectionGroup, getDocs, getDoc, query, orderBy, doc, setDoc, deleteDoc, writeBatch, QueryDocumentSnapshot } from 'firebase/firestore';
-import { db, toDocId } from './firebaseClient';
+import { db, toDocId, authReady } from './firebaseClient';
 
 const PUBLIC_PATH = path.join(__dirname, '../../public/');
 const ASSETSDIR = "/home/dragazzo/Documents/SerialBowl/serial-bowl-assests";
@@ -138,6 +138,7 @@ function chunkArray<T>(items: T[], size: number): T[][] {
 // story's subcollection separately, and each chunk holds ~100 chapters instead of
 // 1 - together that's what keeps startup to a couple of document reads.
 async function loadLibraryFromFirestore(): Promise<StoryData[]> {
+  await authReady;
   const [storiesSnap, chunksSnap] = await Promise.all([
     getDocs(collection(db, 'stories')),
     getDocs(query(collectionGroup(db, 'chapterChunks'), orderBy('chunkIndex'))),
@@ -207,6 +208,7 @@ function chunkDocRef(storyRef: ReturnType<typeof doc>, chunkIndex: number) {
 // every action, which would burn through Firestore's free daily write quota fast.
 ipcMain.handle('updateStoryMeta', async (_, storyId: string, meta: Partial<StoryData>) => {
   try {
+    await authReady;
     const storyRef = doc(db, 'stories', toDocId(storyId));
     await setDoc(storyRef, meta, { merge: true });
     return { success: true };
@@ -220,15 +222,9 @@ ipcMain.handle('updateStoryMeta', async (_, storyId: string, meta: Partial<Story
 // each one lives inside a ~100-chapter chunk doc. So for each touched chunk: read
 // its current contents, patch just the changed slots, write the whole chunk back.
 // Still one read + one write per touched CHUNK, not per chapter.
-//
-// TODO before prod: if a chunk doesn't exist yet (existing.exists() === false) and
-// the first dirty index for it isn't 0, `currentChapters` ends up sparse and
-// setDoc() will throw on the resulting `undefined` slots. Shouldn't happen in
-// normal use (chunks are always first created starting at local offset 0), but a
-// prior failed write whose dirty flag got cleared anyway (see the saveLibrary()
-// TODO in renderer/src/data/library.ts) could leave a chunk in exactly that state.
 ipcMain.handle('upsertChapters', async (_, storyId: string, chapters: Array<ChapterData & { order: number }>) => {
   try {
+    await authReady;
     const storyRef = doc(db, 'stories', toDocId(storyId));
     const byChunk = new Map<number, Array<ChapterData & { order: number }>>();
     for (const chapter of chapters) {
@@ -248,6 +244,13 @@ ipcMain.handle('upsertChapters', async (_, storyId: string, chapters: Array<Chap
         currentChapters[order - chunkIndex * CHAPTER_CHUNK_SIZE] = chapterData;
       }
 
+      // A hole here means some earlier chapter in this chunk was never written -
+      // Firestore rejects `undefined` array slots, so fail loudly instead of
+      // writing (or crashing on) a corrupt chunk.
+      if (Object.keys(currentChapters).length !== currentChapters.length) {
+        throw new Error(`Chunk ${chunkIndex} for story "${storyId}" has missing chapters - refusing to write a sparse chunk`);
+      }
+
       await setDoc(chunkRef, { chunkIndex, chapters: currentChapters });
     }
 
@@ -258,28 +261,32 @@ ipcMain.handle('upsertChapters', async (_, storyId: string, chapters: Array<Chap
   }
 });
 
-// Full delete+rewrite of one story's chapter chunks. Only used for the rare
-// structural edits (insert/delete a chapter mid-list shifts every order after it) —
-// still far cheaper than touching every other story in the library.
+// Full rewrite of one story's chapter chunks. Only used for the rare structural
+// edits (insert/delete a chapter mid-list shifts every order after it) - still
+// far cheaper than touching every other story in the library.
 //
-// TODO before prod: the delete batch(es) and the write batch(es) below are not one
-// atomic operation. A crash/connection loss between them leaves this story's
-// chapterChunks subcollection empty - all its chapters gone - until re-synced.
-// Worth wrapping in a transaction (or at least writing the new chunks before
-// deleting the old ones) before this points at a real backend over a real network.
+// Writes the new chunks first and only deletes now-unneeded leftover chunks
+// (chapter count shrank) afterward, so a crash/connection loss mid-operation
+// still leaves the story's chapters intact - at worst a few stale extra chunk
+// docs to clean up on the next successful replaceChapters call.
 ipcMain.handle('replaceChapters', async (_, storyId: string, chapters: ChapterData[]) => {
   try {
+    await authReady;
     const storyRef = doc(db, 'stories', toDocId(storyId));
     const chunksCol = collection(storyRef, 'chapterChunks');
-    const existing = await getDocs(chunksCol);
 
-    await commitInBatches(existing.docs.map((d: QueryDocumentSnapshot) => ({ ref: d.ref })), 'delete');
-
-    const refs = chunkArray(chapters, CHAPTER_CHUNK_SIZE).map((group, chunkIndex) => ({
+    const newChunks = chunkArray(chapters, CHAPTER_CHUNK_SIZE);
+    const refs = newChunks.map((group, chunkIndex) => ({
       ref: chunkDocRef(storyRef, chunkIndex),
       data: { chunkIndex, chapters: group },
     }));
     await commitInBatches(refs, 'set');
+
+    const existing = await getDocs(chunksCol);
+    const staleRefs = existing.docs
+      .filter((d: QueryDocumentSnapshot) => (d.data().chunkIndex as number) >= newChunks.length)
+      .map((d: QueryDocumentSnapshot) => ({ ref: d.ref }));
+    await commitInBatches(staleRefs, 'delete');
 
     return { success: true };
   } catch (error) {
@@ -290,6 +297,7 @@ ipcMain.handle('replaceChapters', async (_, storyId: string, chapters: ChapterDa
 
 ipcMain.handle('deleteStory', async (_, storyId: string) => {
   try {
+    await authReady;
     const storyRef = doc(db, 'stories', toDocId(storyId));
     const chunksCol = collection(storyRef, 'chapterChunks');
     const existing = await getDocs(chunksCol);
