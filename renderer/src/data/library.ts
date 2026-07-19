@@ -316,7 +316,7 @@ export class Library {
             return;
         }
 
-        if (!api.isDev) {
+        if (!api.useFirestore) {
             const result = await api.saveLibrary(this.stories.map(s => s.serialize()));
             if (!result.success) throw new Error('Failed to save library to file');
             console.log('Saved Successfully');

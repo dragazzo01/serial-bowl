@@ -10,6 +10,9 @@ import {
     orderBy,
     doc,
     setDoc,
+    deleteDoc,
+    writeBatch,
+    QueryDocumentSnapshot,
 } from 'firebase/firestore';
 import { connectStorageEmulator, getStorage } from 'firebase/storage';
 import { getAuth, connectAuthEmulator, signInAnonymously } from 'firebase/auth';
@@ -86,6 +89,26 @@ function chunkDocRef(storyRef: ReturnType<typeof doc>, chunkIndex: number) {
     return doc(collection(storyRef, 'chapterChunks'), chunkIndex.toString().padStart(4, '0'));
 }
 
+function chunkArray<T>(items: T[], size: number): T[][] {
+    const result: T[][] = [];
+    for (let i = 0; i < items.length; i += size) {
+        result.push(items.slice(i, i + size));
+    }
+    return result;
+}
+
+// Firestore batches cap at 500 writes; stay comfortably under that.
+async function commitInBatches(refs: { ref: any; data?: any }[], op: 'set' | 'delete'): Promise<void> {
+    for (const group of chunkArray(refs, 400)) {
+        const batch = writeBatch(db);
+        group.forEach(({ ref, data }) => {
+            if (op === 'set') batch.set(ref, data);
+            else batch.delete(ref);
+        });
+        await batch.commit();
+    }
+}
+
 // Reconstructs StoryData[] from Firestore's story-doc + chapterChunks-subcollection
 // shape - mirrors main/main.ts's loadLibraryFromFirestore for the Electron side.
 export async function loadLibraryFromFirestore(): Promise<StoryData[]> {
@@ -150,6 +173,35 @@ export async function upsertChaptersFirestore(
     }
 }
 
-// No replaceChaptersFirestore/deleteStoryFirestore here on purpose: the website
-// never issues Firestore deletes (see api.ts's browserAPI) - only Electron does,
-// via main/main.ts's separate handlers.
+// Full rewrite of one story's chapter chunks - mirrors main/main.ts's replaceChapters
+// handler. Writes the new chunks first and only deletes now-unneeded leftover chunks
+// afterward, so a crash/connection loss mid-operation still leaves the story's
+// chapters intact - at worst a few stale extra chunk docs to clean up next time.
+export async function replaceChaptersFirestore(storyId: string, chapters: ChapterData[]): Promise<void> {
+    await authReady;
+    const storyRef = doc(db, 'stories', toDocId(storyId));
+    const chunksCol = collection(storyRef, 'chapterChunks');
+
+    const newChunks = chunkArray(chapters, CHAPTER_CHUNK_SIZE);
+    const refs = newChunks.map((group, chunkIndex) => ({
+        ref: chunkDocRef(storyRef, chunkIndex),
+        data: { chunkIndex, chapters: group },
+    }));
+    await commitInBatches(refs, 'set');
+
+    const existing = await getDocs(chunksCol);
+    const staleRefs = existing.docs
+        .filter((d: QueryDocumentSnapshot) => (d.data().chunkIndex as number) >= newChunks.length)
+        .map((d: QueryDocumentSnapshot) => ({ ref: d.ref }));
+    await commitInBatches(staleRefs, 'delete');
+}
+
+export async function deleteStoryFirestore(storyId: string): Promise<void> {
+    await authReady;
+    const storyRef = doc(db, 'stories', toDocId(storyId));
+    const chunksCol = collection(storyRef, 'chapterChunks');
+    const existing = await getDocs(chunksCol);
+
+    await commitInBatches(existing.docs.map((d: QueryDocumentSnapshot) => ({ ref: d.ref })), 'delete');
+    await deleteDoc(storyRef);
+}

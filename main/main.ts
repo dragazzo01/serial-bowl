@@ -25,9 +25,8 @@ import { db, toDocId, authReady } from './firebaseClient';
 
 const PUBLIC_PATH = path.join(__dirname, '../../public/');
 const ASSETSDIR = "/home/dragazzo/Documents/SerialBowl/serial-bowl-assests";
-const LIBRARY_PATH = path.join(ASSETSDIR, 'library.json');
 
-const isDev = !app.isPackaged; // true when running `npm run dev`
+const isDev = !app.isPackaged; // true when running `npm run dev` - gates window loading only; storage is always Firestore, dev and packaged alike
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -35,9 +34,6 @@ function createWindow() {
     height: 800,
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
-      // Sandboxed preload scripts can't import `electron`'s `app` module, so pass
-      // the dev flag through argv instead (readable via plain Node `process.argv`).
-      additionalArguments: [isDev ? '--sb-dev' : '--sb-prod'],
     },
     icon: path.join(PUBLIC_PATH, 'icon.ico')
   });
@@ -87,17 +83,6 @@ app.whenReady().then(() => {
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
-
-async function initializeLibrary() {
-  try {
-    await fs.access(LIBRARY_PATH);
-  } catch (error) {
-    if ((error as any).code === 'ENOENT') {
-      console.error('Error initializing library:', error);
-    }
-  }
-}
-initializeLibrary();
 
 // Helper function to get MIME type
 function getMimeType(filePath: string): string {
@@ -164,26 +149,10 @@ async function loadLibraryFromFirestore(): Promise<StoryData[]> {
 // Handle loading the library
 ipcMain.handle('loadLibrary', async () => {
   try {
-    if (isDev) {
-      return await loadLibraryFromFirestore();
-    }
-    const data = await fs.readFile(LIBRARY_PATH, 'utf-8');
-    return JSON.parse(data);
+    return await loadLibraryFromFirestore();
   } catch (error) {
     console.error('Error loading library:', error);
     return [];
-  }
-});
-
-// Handle saving the library
-ipcMain.handle('saveLibrary', async (_, data) => {
-  try {
-    if (!isDev)
-      await fs.writeFile(LIBRARY_PATH, JSON.stringify(data, null, 2), 'utf-8');
-    return { success: true };
-  } catch (error) {
-    console.error('Error saving library:', error);
-    return { success: false, error: error instanceof Error ? error.message : String(error) };
   }
 });
 

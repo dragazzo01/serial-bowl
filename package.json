@@ -41,7 +41,7 @@
     "wait-on": "^7.0.1"
   },
   "build": {
-    "appId": "com.yourcompany.yourapp",
+    "appId": "com.dragazzo.serialbowl",
     "productName": "SerialBowl",
     "files": [
       "dist/**/*",

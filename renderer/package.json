@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "vite",
     "build": "cross-env BASEDIR=./ vite build",
-    "build:github": "cross-env BASEDIR=/serial-bowl/ VITE_LIBRARY_SOURCE=static vite build",
+    "build:github": "cross-env BASEDIR=/serial-bowl/ vite build",
     "build:localhost": "cross-env BASEDIR=/ vite build",
     "preview": "vite preview",
     "deploy": "npm run build:github && gh-pages -d ../dist/renderer",

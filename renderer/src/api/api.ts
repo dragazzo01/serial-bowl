@@ -4,13 +4,20 @@ import {
     loadLibraryFromFirestore,
     updateStoryMetaFirestore,
     upsertChaptersFirestore,
+    replaceChaptersFirestore,
+    deleteStoryFirestore,
 } from '../data/firebaseClient'
 
 export type OrderedChapterData = ChapterData & { order: number };
 
 // api.ts
 export interface AppAPI {
-    isDev: boolean;
+    // Whether this environment syncs granularly through Firestore (Electron:
+    // always, since packaged and dev builds both talk to the real/emulated
+    // project via main.ts) vs. falling back to a blanket saveLibrary() call
+    // (browser: only if VITE_LIBRARY_SOURCE=static is set manually, a read-only
+    // fallback against the static library.json - not used by any build script).
+    useFirestore: boolean;
     loadLibrary: () => Promise<StoryData[]>;
     saveLibrary: (data: StoryData[]) => Promise<{ success: boolean }>;
     updateStoryMeta: (storyId: string, meta: Partial<StoryData>) => Promise<{ success: boolean }>;
@@ -27,9 +34,7 @@ export interface AppAPI {
 declare global {
     interface Window {
         electronAPI: {
-            isDev: boolean;
             loadLibrary: () => Promise<StoryData[]>;
-            saveLibrary: (data: StoryData[]) => Promise<{ success: boolean }>;
             updateStoryMeta: (storyId: string, meta: Partial<StoryData>) => Promise<{ success: boolean }>;
             upsertChapters: (storyId: string, chapters: OrderedChapterData[]) => Promise<{ success: boolean }>;
             replaceChapters: (storyId: string, chapters: ChapterData[]) => Promise<{ success: boolean }>;
@@ -47,9 +52,14 @@ declare global {
 }
 
 const electronAPI: AppAPI = {
-    isDev: false, // overwritten below once window.electronAPI is available
+    // Electron always syncs through Firestore, dev and packaged alike - see
+    // main.ts, which no longer branches storage on app.isPackaged.
+    useFirestore: true,
     loadLibrary: () => window.electronAPI.loadLibrary(),
-    saveLibrary: (data) => window.electronAPI.saveLibrary(data),
+    // Unreachable in practice since useFirestore is always true above, so
+    // doSaveLibrary() in library.ts never takes the branch that calls this.
+    // Kept as a no-op only because AppAPI requires the field.
+    saveLibrary: async () => ({ success: true }),
     updateStoryMeta: (storyId, meta) => window.electronAPI.updateStoryMeta(storyId, meta),
     upsertChapters: (storyId, chapters) => window.electronAPI.upsertChapters(storyId, chapters),
     replaceChapters: (storyId, chapters) => window.electronAPI.replaceChapters(storyId, chapters),
@@ -82,16 +92,14 @@ async function baseRequest(url: string, userAgent: string = defaultUA): Promise<
 }
 
 
-// `import.meta.env.DEV` can't distinguish "local build served with npx serve"
-// (npm run serve -> build:localhost, a real production vite build) from "the
-// actual deployed GitHub Pages PWA" - both are production builds. So this is
-// its own explicit flag instead: everything defaults to Firestore/the emulator
-// unless VITE_LIBRARY_SOURCE=static, which build:github sets for the one real
-// deployed build that still needs the static library.json fallback.
+// Every build (local dev, serve, and the deployed GitHub Pages build) talks to
+// Firestore/the emulator by default. VITE_LIBRARY_SOURCE=static is a manual
+// escape hatch to fall back to the static library.json instead, e.g. for a
+// throwaway read-only mirror - no current build script sets it.
 const useFirestoreLibrary = import.meta.env.VITE_LIBRARY_SOURCE !== 'static';
 
 const browserAPI: AppAPI = {
-    isDev: useFirestoreLibrary,
+    useFirestore: useFirestoreLibrary,
 
     loadLibrary: async (): Promise<StoryData[]> => {
         if (useFirestoreLibrary) {
@@ -132,18 +140,24 @@ const browserAPI: AppAPI = {
         }
     },
 
-    // The website never issues Firestore deletes - a chapter delete/insert-at-position
-    // (structural change) and a story delete both only remove things locally here,
-    // and are lost on reload since nothing was actually persisted. Only Electron,
-    // which you fully control, can delete for real.
-    replaceChapters: async () => {
-        console.log('Structural chapter change kept local only - not saved from the website');
-        return { success: true };
+    replaceChapters: async (storyId, chapters) => {
+        try {
+            await replaceChaptersFirestore(storyId, chapters);
+            return { success: true };
+        } catch (error) {
+            console.error('Error replacing chapters:', error);
+            return { success: false };
+        }
     },
 
-    deleteStoryRemote: async () => {
-        console.log('Story deletion kept local only - not saved from the website');
-        return { success: true };
+    deleteStoryRemote: async (storyId) => {
+        try {
+            await deleteStoryFirestore(storyId);
+            return { success: true };
+        } catch (error) {
+            console.error('Error deleting story:', error);
+            return { success: false };
+        }
     },
 
     getUpdateHTML: async (_story: StoryData) => {
@@ -169,10 +183,6 @@ const browserAPI: AppAPI = {
 
 function isElectron(): boolean {
     return !!(window as any).electronAPI;
-}
-
-if (isElectron()) {
-    electronAPI.isDev = window.electronAPI.isDev;
 }
 
 const api: AppAPI = isElectron() ? electronAPI : browserAPI;
