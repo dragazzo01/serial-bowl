@@ -18,6 +18,8 @@ export async function getStoryUpdateHTML(story: Story): Promise<string> {
         return baseRequest(story.additionalInfo.chaptersLink);
     } else if (story.homepageURL.includes("mangadex.org")) {
         return baseRequest(`https://api.mangadex.org/chapter?manga=${story.additionalInfo.mangaID}&translatedLanguage[]=en&order[chapter]=desc&limit=30`, "curl/8.5.0");
+    } else if (story.homepageURL.includes("chikari.moe")) {
+        return baseRequest(`https://chikari.moe/api/${chikariPath(story)}/chapters?limit=500`);
     } else {
         throw new Error("No scrapper assigned to this story");
     }
@@ -75,6 +77,8 @@ export async function parseStoryUpdateHTML(story: Story, data: string): Promise<
         return parseGenesis(story, data);
     } else if (story.homepageURL.includes("mangadex.org")) {
         return parseMangaDex(story, data);
+    } else if (story.homepageURL.includes("chikari.moe")) {
+        return parseChikari(story, data);
     } else {
         throw new Error("No scrapper assigned to this story");
     }
@@ -83,6 +87,17 @@ export async function parseStoryUpdateHTML(story: Story, data: string): Promise<
 
 function latestTitle(story: Story): string {
     return story.getLastKnownChapter().title;
+}
+
+// chikari's api and chapter urls are both keyed off the homepage url's path: webnovels
+// live under /novels/<slug> and comics under /series/<slug>, and the two only differ by
+// that segment (/api/<section>/<slug>/chapters returns the same shape for both)
+function chikariPath(story: Story): string {
+    const match = story.homepageURL.match(/chikari\.moe\/(novels|series)\/([^/?#]+)/);
+    if (!match) {
+        throw new Error(`Could not find a chikari novel or series slug in ${story.homepageURL}`);
+    }
+    return `${match[1]}/${match[2]}`;
 }
 
 // // ❌ Puppeteer-based — leave stub
@@ -282,6 +297,43 @@ async function parseGenesis(story: Story, response: string): Promise<Chapter[]> 
 
             newChapters.push(Chapter.new(title, url));
         }
+    }
+
+    return newChapters.reverse();
+}
+
+async function parseChikari(story: Story, response: string): Promise<Chapter[]> {
+    const items = JSON.parse(response).items as Array<{
+        number: number;
+        title: string;
+        created_at: string;
+    }> | undefined;
+
+    if (!items?.length) {
+        throw new Error("No Chapters Detected");
+    }
+
+    const path = chikariPath(story);
+    const latestChapterFull = latestTitle(story).match(/^Ch\.\s*(\d+(?:\.\d+)?)/);
+    const latestChapter = latestChapterFull ? latestChapterFull[1] : null;
+
+    const newChapters: Chapter[] = [];
+    for (const item of items) { // newest first
+        const number = String(item.number);
+        if (number === latestChapter) break;
+
+        // titles restate the chapter number in a handful of inconsistent ways
+        // ("Chapter 12 Name", "Chapter 12 - 12: Name", plus the odd typo), so strip
+        // whatever leading prefix wraps the number rather than matching one format
+        const numPattern = number.replace(".", "\\.");
+        const prefix = new RegExp(`^\\s*[A-Za-z]*\\.?\\s*${numPattern}\\s*(?:[-–:.]\\s*${numPattern}\\s*)?[-–:.]?\\s*`);
+        const name = item.title.replace(prefix, "").trim();
+
+        const title = name ? `Ch. ${number}: ${name}` : `Ch. ${number}`;
+        const url = `https://chikari.moe/${path}/${number}`;
+        const date = new Date(item.created_at).toLocaleDateString("en-US");
+
+        newChapters.push(Chapter.new(title, url, date));
     }
 
     return newChapters.reverse();
