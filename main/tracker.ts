@@ -20,6 +20,8 @@ export async function getStoryUpdateHTML(story: Story): Promise<string> {
         return baseRequest(`https://api.mangadex.org/chapter?manga=${story.additionalInfo.mangaID}&translatedLanguage[]=en&order[chapter]=desc&limit=30`, "curl/8.5.0");
     } else if (story.homepageURL.includes("chikari.moe")) {
         return baseRequest(`https://chikari.moe/api/${chikariPath(story)}/chapters?limit=500`);
+    } else if (story.homepageURL.includes("backstabbedinabackwaterdungeon.com")) {
+        return baseRequest(story.homepageURL);
     } else {
         throw new Error("No scrapper assigned to this story");
     }
@@ -79,6 +81,8 @@ export async function parseStoryUpdateHTML(story: Story, data: string): Promise<
         return parseMangaDex(story, data);
     } else if (story.homepageURL.includes("chikari.moe")) {
         return parseChikari(story, data);
+    } else if (story.homepageURL.includes("backstabbedinabackwaterdungeon.com")) {
+        return parseBackwaterDungeon(story, data);
     } else {
         throw new Error("No scrapper assigned to this story");
     }
@@ -367,6 +371,47 @@ async function parseMangaDex(story: Story, response: string): Promise<Chapter[]>
 
         const url = chapterUrlRoot + chapter.id;
         newChapters.push(Chapter.new(title, url, date));
+    }
+
+    return newChapters.reverse();
+}
+
+// the site hosts this one story and its homepage carries the whole chapter index, so
+// there's nothing to key off additionalInfo - the homepage url is the chapter list.
+// It runs the same su_posts shortcode several times though (two teaser buttons for the
+// first/latest chapter, then a stray one-entry list at the bottom), so take the longest
+// list: that's the "All ... Chapters:" index, newest first.
+async function parseBackwaterDungeon(story: Story, response: string): Promise<Chapter[]> {
+    const $ = cheerio.load(response);
+
+    const lists = $("ul.su-posts-list-loop").toArray();
+    if (lists.length === 0) {
+        throw new Error("No Chapters Detected");
+    }
+    const chapterList = lists.reduce((longest, list) =>
+        $(list).find("li.su-post").length > $(longest).find("li.su-post").length ? list : longest);
+
+    const links = $(chapterList).find("li.su-post > a").toArray();
+    if (links.length === 0) {
+        throw new Error("No Chapters Detected");
+    }
+
+    // every link is titled "<story name> Chapter <n>" with no per-chapter name, so match
+    // on the number like the mangadex/chikari parsers rather than on the whole string -
+    // that also keeps matching the "Ch. N: NAME" titles already stored for this story.
+    const latestChapterFull = latestTitle(story).match(/^Ch\.\s*(\d+(?:\.\d+)?)/);
+    const latestChapter = latestChapterFull ? latestChapterFull[1] : null;
+
+    const newChapters: Chapter[] = [];
+    for (const link of links) { // newest first
+        const a = $(link);
+        const number = a.text().trim().match(/Chapter\s+(\d+(?:\.\d+)?)$/i)?.[1];
+        if (!number) continue;
+        if (number === latestChapter) break;
+
+        // the page carries no publish dates, so Chapter.new falls back to today - the
+        // same "date tracked" behaviour as the frieren/ranobes/lightnovelworld parsers
+        newChapters.push(Chapter.new(`Ch. ${number}`, a.attr("href") || ""));
     }
 
     return newChapters.reverse();
